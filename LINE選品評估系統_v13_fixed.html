@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINE 團購選品評估系統 v13</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f7f9fc;--surface3:#eef2f7;
+  --border:#dde3ec;--border-strong:#c5cfdf;
+  --accent:#2563eb;--accent-dim:#eff6ff;
+  --green:#059669;--green-dim:#d1fae5;--green-dark:#065f46;
+  --yellow:#d97706;--yellow-dim:#fef3c7;--yellow-dark:#92400e;
+  --red:#dc2626;--red-dim:#fee2e2;--red-dark:#991b1b;
+  --purple:#7c3aed;--purple-dim:#f3e8ff;
+  --teal:#0891b2;--teal-dim:#e0f2fe;
+  --text:#1e293b;--dim:#475569;--muted:#94a3b8;
+  --radius:10px;--radius-sm:6px;--radius-lg:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;font-size:14px;line-height:1.6;}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.topbar-brand h1{font-size:15px;font-weight:800;}
+.version-tag{font-size:10px;font-weight:700;background:var(--green);color:#fff;padding:2px 7px;border-radius:4px;margin-left:8px;}
+.topbar-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+/* ── SYNC INDICATOR ── */
+.sync-indicator{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;transition:all .2s;user-select:none;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:all .3s;}
+.sync-dot.synced{background:var(--green);box-shadow:0 0 0 2px var(--green-dim);}
+.sync-dot.syncing{background:var(--yellow);animation:pulse .8s ease-in-out infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:340px 1fr;gap:16px;max-width:1400px;margin:0 auto;padding:20px 16px;}
+@media(max-width:960px){.layout{grid-template-columns:1fr;}}
+
+/* ── CARDS ── */
+.sidebar{display:flex;flex-direction:column;gap:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.card-title{font-size:12px;font-weight:800;margin-bottom:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;}
+
+/* ── SETUP BANNER ── */
+.setup-banner{background:linear-gradient(135deg,#fef3c7,#fff7ed);border:1.5px solid #fde68a;border-radius:var(--radius);padding:14px 16px;}
+.setup-banner.connected{background:linear-gradient(135deg,#d1fae5,#ecfdf5);border-color:#6ee7b7;}
+.setup-step{display:flex;gap:9px;align-items:flex-start;margin-bottom:8px;}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--yellow);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-num.done{background:var(--green);}
+.setup-step-txt{font-size:12px;line-height:1.5;color:var(--dim);}
+.setup-url-input{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:11px;font-family:monospace;margin-top:6px;color:var(--text);}
+.setup-url-input:focus{outline:none;border-color:var(--accent);}
+
+/* ── FORMS ── */
+.field{margin-bottom:10px;}
+.field label{font-size:11px;color:var(--dim);font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+input[type=text],input[type=number],textarea,select{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--text);background:var(--surface);font-family:inherit;transition:border .15s;}
+input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+textarea{resize:vertical;min-height:52px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover:not(:disabled){background:#1d4ed8;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover:not(:disabled){background:#047857;}
+.btn-outline{background:transparent;color:var(--dim);border:1.5px solid var(--border);}
+.btn-outline:hover:not(:disabled){background:var(--surface2);}
+.btn-teal{background:var(--teal);color:#fff;}
+.btn-sm{padding:6px 11px;font-size:12px;}
+.btn-xs{padding:4px 9px;font-size:11px;border-radius:6px;}
+.btn-full{width:100%;justify-content:center;}
+.btn-danger-xs{background:#fef2f2;color:var(--red);border:1px solid #fecaca;padding:3px 8px;font-size:11px;border-radius:5px;cursor:pointer;font-family:inherit;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:18px;border:1px solid var(--border);}
+.tab{padding:8px 14px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;color:var(--dim);border:none;background:transparent;transition:all .15s;font-family:inherit;}
+.tab.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.08);}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+@media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);}
+.stat.green::before{background:var(--green);}
+.stat.blue::before{background:var(--accent);}
+.stat.yellow::before{background:var(--yellow);}
+.stat-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:800;}
+.stat-sub{font-size:11px;color:var(--dim);margin-top:3px;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--surface2);padding:10px 12px;text-align:left;font-size:10px;font-weight:800;color:var(--dim);border-bottom:2px solid var(--border);white-space:nowrap;text-transform:uppercase;letter-spacing:.5px;}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8faff;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700;}
+.badge-go{background:var(--green-dim);color:var(--green-dark);}
+.badge-maybe{background:var(--yellow-dim);color:var(--yellow-dark);}
+.badge-no{background:var(--red-dim);color:var(--red-dark);}
+.badge-wait{background:var(--accent-dim);color:#1d4ed8;}
+.badge-sheets{background:#e8f5e9;color:#1b5e20;}
+
+/* ── SCORES ── */
+.score-num{display:inline-flex;align-items:center;justify-content:center;width:44px;height:28px;border-radius:6px;font-size:14px;font-weight:800;}
+.score-go{background:var(--green-dim);color:var(--green-dark);}
+.score-maybe{background:var(--yellow-dim);color:var(--yellow-dark);}
+.score-no{background:var(--red-dim);color:var(--red-dark);}
+.score-wait{background:var(--surface2);color:var(--muted);}
+
+/* ── MARGIN BARS ── */
+.margin-col{display:flex;flex-direction:column;gap:3px;}
+.margin-row{display:flex;align-items:center;gap:6px;font-size:12px;}
+.margin-label{color:var(--dim);width:38px;flex-shrink:0;font-size:11px;font-weight:600;}
+.margin-bar-bg{flex:1;height:5px;background:var(--border);border-radius:3px;min-width:50px;}
+.margin-bar-fill{height:100%;border-radius:3px;transition:width .4s ease;}
+.margin-val{font-weight:700;min-width:42px;text-align:right;}
+
+/* ── QUEUE ── */
+.queue-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;transition:border-color .2s;}
+.queue-item.crawling{border-color:var(--accent);background:var(--accent-dim);}
+.queue-item.done{border-color:var(--green);background:var(--green-dim);}
+.queue-item.error{border-color:var(--red);background:var(--red-dim);}
+.sheets-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#e8f5e9;color:#1b5e20;display:inline-flex;align-items:center;gap:3px;}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:min(740px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.22);}
+.modal-hdr{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;}
+.modal-body{padding:20px 22px;}
+.modal-ftr{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);}
+.close-btn{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}
+.modal-section{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);}
+.modal-section-title{font-size:12px;font-weight:800;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);}
+
+.srow{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.srow-lbl{font-size:12px;color:var(--dim);width:115px;flex-shrink:0;}
+.srow-bar{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.srow-fill{height:100%;border-radius:4px;}
+.srow-val{font-size:12px;font-weight:700;width:28px;text-align:right;}
+
+.info-box{background:var(--accent-dim);border:1px solid #bfdbfe;border-radius:8px;padding:10px 13px;font-size:12px;color:#1e40af;line-height:1.7;margin-bottom:12px;}
+.warn-box{background:var(--yellow-dim);border:1px solid #fde68a;border-radius:8px;padding:10px 13px;font-size:12px;color:var(--yellow-dark);line-height:1.7;margin-bottom:12px;}
+.success-box{background:var(--green-dim);border:1px solid #6ee7b7;border-radius:8px;padding:10px 13px;font-size:12px;color:var(--green-dark);line-height:1.7;margin-bottom:12px;}
+.no-data-box{background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--muted);text-align:center;}
+.missing-data-box{background:var(--surface3);border:1.5px dashed var(--border-strong);border-radius:8px;padding:8px 13px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+
+.swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.swot-s{background:var(--green-dim);color:var(--green-dark);border-radius:8px;padding:10px 12px;}
+.swot-w{background:var(--red-dim);color:var(--red-dark);border-radius:8px;padding:10px 12px;}
+.swot-o{background:var(--accent-dim);color:#1e40af;border-radius:8px;padding:10px 12px;}
+.swot-t{background:var(--yellow-dim);color:var(--yellow-dark);border-radius:8px;padding:10px 12px;}
+.swot-label{font-weight:800;font-size:12px;margin-bottom:6px;}
+.swot-list{list-style:none;padding:0;margin:0;}
+.swot-list li{font-size:11px;line-height:1.7;padding-left:12px;position:relative;}
+.swot-list li::before{content:'·';position:absolute;left:0;font-weight:700;}
+
+.action-plan{display:flex;flex-direction:column;gap:8px;}
+.action-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);}
+.action-week{flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;margin-top:1px;white-space:nowrap;}
+.aw-1{background:var(--accent-dim);color:#1d4ed8;}
+.aw-2{background:var(--green-dim);color:var(--green-dark);}
+.aw-3{background:var(--yellow-dim);color:var(--yellow-dark);}
+.action-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.action-desc{font-size:12px;color:var(--dim);line-height:1.6;}
+
+.source-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:7px;font-size:12px;margin-bottom:5px;border:1px solid var(--border);}
+.source-type{flex-shrink:0;background:var(--accent-dim);color:#1d4ed8;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:500;background:var(--text);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(20px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{background:var(--green);}
+.toast.error{background:var(--red);}
+.toast.info{background:var(--accent);}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+
+/* ── SHEETS STATUS ── */
+.sheets-status{display:flex;flex-direction:column;gap:6px;font-size:12px;}
+.sheets-row{display:flex;justify-content:space-between;align-items:center;}
+.sheets-label{color:var(--dim);}
+.sheets-val{font-weight:700;}
+.api-url-display{font-size:10px;color:var(--muted);word-break:break-all;background:var(--surface3);padding:4px 8px;border-radius:5px;margin-top:4px;font-family:monospace;}
+
+/* ── GUIDE CODE ── */
+.code-block{background:#1e293b;color:#e2e8f0;border-radius:8px;padding:14px;font-family:monospace;font-size:11px;line-height:1.8;overflow-x:auto;margin-bottom:12px;}
+.code-c{color:#94a3b8;}
+.code-s{color:#f9a8d4;}
+.code-n{color:#6ee7b7;}
+.code-k{color:#fbbf24;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <h1 class="topbar-brand">📊 LINE 選品評估系統</h1>
+      <span class="version-tag">v13</span>
+    </div>
+    <div class="topbar-meta">Google Sheets 即時共享 · Chrome MCP 純實搜 · 多人同步</div>
+  </div>
+  <div class="topbar-right">
+    <div class="sync-indicator" id="sync-btn" onclick="manualSync()">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">初始化中...</span>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="showGuide()">⚙️ 設定說明</button>
+    <button class="btn btn-green btn-sm" onclick="exportExcel()">⬇ Excel</button>
+    <button class="btn btn-outline btn-sm" style="color:var(--red);" onclick="clearAll()">🗑 清空</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="layout">
+<!-- SIDEBAR -->
+<div class="sidebar">
+
+  <!-- Google Sheets 設定 -->
+  <div class="setup-banner" id="setup-banner">
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px;">⚙️ 第一次使用：設定 Google Sheets</div>
+    <div class="setup-step">
+      <div class="step-num" id="step1-num">1</div>
+      <div class="setup-step-txt">
+        依照「設定說明」建立 Google Apps Script，取得 API 網址
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num" id="step2-num">2</div>
+      <div class="setup-step-txt">
+        將 API 網址貼到下方，按「儲存連線」
+        <input type="text" class="setup-url-input" id="api-url-input"
+          placeholder="https://script.google.com/macros/s/xxxxx/exec">
+        <div style="margin-top:6px;display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="saveApiUrl()" style="flex:1;justify-content:center;">儲存連線</button>
+          <button class="btn btn-outline btn-sm" onclick="testConnection()">測試</button>
+        </div>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num" id="step3-num">3</div>
+      <div class="setup-step-txt">連線成功後，所有人開啟網址即可即時共享 ✅</div>
+    </div>
+  </div>
+
+  <!-- Sheets 狀態 -->
+  <div class="card">
+    <div class="card-title">🔗 Google Sheets 狀態</div>
+    <div class="sheets-status">
+      <div class="sheets-row"><span class="sheets-label">連線狀態</span><span class="sheets-val" id="conn-status">—</span></div>
+      <div class="sheets-row"><span class="sheets-label">商品筆數</span><span class="sheets-val" id="conn-count">0 筆</span></div>
+      <div class="sheets-row"><span class="sheets-label">已完成爬蟲</span><span class="sheets-val" id="conn-done">0 筆</span></div>
+      <div class="sheets-row"><span class="sheets-label">最後同步</span><span class="sheets-val" id="conn-time" style="font-size:11px;">—</span></div>
+      <div id="api-url-display" class="api-url-display" style="display:none;"></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:6px;">
+      <button class="btn btn-outline btn-xs" onclick="manualSync()" style="flex:1;justify-content:center;">🔄 立即同步</button>
+      <button class="btn btn-outline btn-xs" onclick="loadFromSheets()" style="flex:1;justify-content:center;">📥 重新載入</button>
+    </div>
+  </div>
+
+  <!-- 新增商品 -->
+  <div class="card">
+    <div class="card-title">➕ 新增商品</div>
+    <div class="field">
+      <label>商品名稱 *</label>
+      <input type="text" id="inp-name" placeholder="例：St.Clare 水楊酸背痘噴霧">
+    </div>
+    <div class="field">
+      <label>品牌名稱</label>
+      <input type="text" id="inp-brand" placeholder="例：St.Clare 聖克萊爾">
+    </div>
+    <div class="field">
+      <label>商品連結（爬蟲用）</label>
+      <input type="text" id="inp-url" placeholder="貼上官網或蝦皮連結">
+    </div>
+    <div class="field">
+      <label>LINE 團購預計售價（NT$）*</label>
+      <input type="number" id="inp-price" placeholder="例：480" min="0">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>進貨成本（NT$）</label>
+        <input type="number" id="inp-cost" placeholder="0" min="0">
+      </div>
+      <div class="field">
+        <label>出貨運費（NT$）</label>
+        <input type="number" id="inp-logistic" placeholder="0" min="0">
+      </div>
+    </div>
+    <div class="field">
+      <label>包材成本（NT$）</label>
+      <input type="number" id="inp-packing" placeholder="0" min="0">
+    </div>
+    <div class="field">
+      <label>備註</label>
+      <textarea id="inp-note" placeholder="認證、特殊需求、授權書狀態..."></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="addProduct()">＋ 加入（同步至 Sheets）</button>
+  </div>
+
+  <!-- 待評估清單 -->
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between;">
+      <span>📋 待評估清單</span>
+      <span id="queue-count" style="font-size:11px;color:var(--muted);font-weight:400;">0 個</span>
+    </div>
+    <div id="pq" style="display:flex;flex-direction:column;gap:8px;">
+      <div class="empty" style="padding:20px;"><p style="font-size:12px;">尚未加入商品</p></div>
+    </div>
+  </div>
+
+</div><!-- end sidebar -->
+
+<!-- MAIN -->
+<div>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('results',this)">📊 評估結果</button>
+    <button class="tab" onclick="switchTab('cost',this)">💰 成本明細</button>
+    <button class="tab" onclick="switchTab('guide',this)">⚙️ 設定說明</button>
+  </div>
+
+  <!-- RESULTS TAB -->
+  <div id="tab-results">
+    <div id="stats-row" class="stats-row" style="display:none;">
+      <div class="stat blue"><div class="stat-label">評估商品</div><div class="stat-value" id="st-total">0</div><div class="stat-sub">本批次</div></div>
+      <div class="stat green"><div class="stat-label">推進商品</div><div class="stat-value" id="st-go" style="color:var(--green);">0</div><div class="stat-sub">≥ 70 分</div></div>
+      <div class="stat yellow"><div class="stat-label">平均毛利（含運）</div><div class="stat-value" id="st-m1">—</div><div class="stat-sub">目標 ≥ 30%</div></div>
+      <div class="stat"><div class="stat-label">平均毛利（不含運）</div><div class="stat-value" id="st-m2">—</div><div class="stat-sub">目標 ≥ 35%</div></div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="tbl-wrap" id="results-wrap">
+        <div class="empty"><p>新增商品並完成爬蟲後自動顯示<br><small style="color:var(--muted);">資料儲存至 Google Sheets，任何人開啟都能看到</small></p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COST TAB -->
+  <div id="tab-cost" style="display:none;">
+    <div class="card">
+      <div class="card-title">💰 成本 × 毛利 明細</div>
+      <div class="info-box">含運毛利 = (售價 − 進貨 − 運費 − 包材) ÷ 售價 ｜ LINE 達標：<strong>含運 ≥ 30%</strong> 或 <strong>不含運 ≥ 35%</strong></div>
+      <div class="tbl-wrap" id="cost-wrap"><div class="empty"><p>新增商品後顯示</p></div></div>
+    </div>
+  </div>
+
+  <!-- GUIDE TAB -->
+  <div id="tab-guide" style="display:none;">
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">⚙️ Google Sheets 設定教學（一次設定，永久共享）</div>
+
+      <div class="success-box">設定完成後，任何人開啟 GitHub Pages 網址，都能即時看到同一份資料。不需要 Python server，不需要任何安裝。</div>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 1：建立 Google Sheets</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.8;">
+        前往 <a href="https://sheets.google.com" target="_blank" style="color:var(--accent);">sheets.google.com</a>，建立一個新的空白試算表，命名為「LINE選品評估_v13」。記下試算表的網址（裡面有一串 ID 會用到）。
+      </p>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 2：建立 Google Apps Script</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:8px;line-height:1.8;">
+        在試算表點上方選單「擴充功能」→「Apps Script」，刪除原有內容，貼上以下程式碼：
+      </p>
+
+      <div class="code-block">
+<span class="code-c">// LINE 選品評估系統 v13 — Google Apps Script 後端</span><br>
+<span class="code-c">// 貼到 Apps Script 後，記得把下面的 SHEET_ID 換成你的試算表 ID</span><br><br>
+<span class="code-k">const</span> SHEET_ID = <span class="code-s">'你的試算表ID'</span>; <span class="code-c">// ← 換這裡</span><br>
+<span class="code-k">const</span> SHEET_NAME = <span class="code-s">'products'</span>;<br><br>
+<span class="code-k">function</span> <span class="code-n">doGet</span>(e) {<br>
+&nbsp;&nbsp;<span class="code-k">const</span> action = e.parameter.action;<br>
+&nbsp;&nbsp;<span class="code-k">if</span> (action === <span class="code-s">'read'</span>) <span class="code-k">return</span> readProducts();<br>
+&nbsp;&nbsp;<span class="code-k">if</span> (action === <span class="code-s">'ping'</span>) <span class="code-k">return</span> ok({status:<span class="code-s">'ok'</span>,msg:<span class="code-s">'LINE選品v13連線成功'</span>});<br>
+&nbsp;&nbsp;<span class="code-k">return</span> ok({error:<span class="code-s">'unknown action'</span>});<br>
+}<br><br>
+<span class="code-k">function</span> <span class="code-n">doPost</span>(e) {<br>
+&nbsp;&nbsp;<span class="code-k">const</span> data = JSON.parse(e.postData.contents);<br>
+&nbsp;&nbsp;<span class="code-k">if</span> (data.action === <span class="code-s">'write'</span>) <span class="code-k">return</span> writeProducts(data.products);<br>
+&nbsp;&nbsp;<span class="code-k">return</span> ok({error:<span class="code-s">'unknown'</span>});<br>
+}<br><br>
+<span class="code-k">function</span> <span class="code-n">readProducts</span>() {<br>
+&nbsp;&nbsp;<span class="code-k">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">const</span> ss = SpreadsheetApp.openById(SHEET_ID);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">let</span> sheet = ss.getSheetByName(SHEET_NAME);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">if</span> (!sheet) <span class="code-k">return</span> ok({products:[], nextId:<span class="code-n">1</span>});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">const</span> data = sheet.getRange(<span class="code-s">'A1'</span>).getValue();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">if</span> (!data) <span class="code-k">return</span> ok({products:[], nextId:<span class="code-n">1</span>});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">return</span> ok(JSON.parse(data));<br>
+&nbsp;&nbsp;} <span class="code-k">catch</span>(err) { <span class="code-k">return</span> ok({error:err.toString()}); }<br>
+}<br><br>
+<span class="code-k">function</span> <span class="code-n">writeProducts</span>(payload) {<br>
+&nbsp;&nbsp;<span class="code-k">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">const</span> ss = SpreadsheetApp.openById(SHEET_ID);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">let</span> sheet = ss.getSheetByName(SHEET_NAME);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">if</span> (!sheet) sheet = ss.insertSheet(SHEET_NAME);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;sheet.getRange(<span class="code-s">'A1'</span>).setValue(JSON.stringify(payload));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">return</span> ok({status:<span class="code-s">'saved'</span>, count: payload.products?.length || <span class="code-n">0</span>});<br>
+&nbsp;&nbsp;} <span class="code-k">catch</span>(err) { <span class="code-k">return</span> ok({error:err.toString()}); }<br>
+}<br><br>
+<span class="code-k">function</span> <span class="code-n">ok</span>(data) {<br>
+&nbsp;&nbsp;<span class="code-k">return</span> ContentService<br>
+&nbsp;&nbsp;&nbsp;&nbsp;.createTextOutput(JSON.stringify(data))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);<br>
+}
+      </div>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 3：取得試算表 ID</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.8;">
+        試算表網址長這樣：<br>
+        <code style="background:var(--surface3);padding:2px 6px;border-radius:4px;font-size:11px;">https://docs.google.com/spreadsheets/d/<strong style="color:var(--red);">這串就是ID</strong>/edit</code><br>
+        把紅色那串複製，貼到 Apps Script 程式碼第一行的 <code>SHEET_ID</code>。
+      </p>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 4：部署為 Web App</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:8px;line-height:1.8;">
+        Apps Script 右上角點「部署」→「新增部署作業」→ 類型選「網頁應用程式」<br>
+        設定：<strong>以我的身份執行</strong>，存取權限選「<strong>所有人</strong>」<br>
+        點「部署」→「授予存取權」→ 複製「網頁應用程式網址」
+      </p>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 5：貼回工具</div>
+      <p style="font-size:12px;color:var(--dim);line-height:1.8;">
+        回到工具左側「設定」欄，把網址貼入，按「儲存連線」→「測試」，看到「✅ 連線成功」就完成了。
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔌 injectCrawlResult() API（Claude 爬蟲注入用）</div>
+      <div class="info-box">Claude 完成 Chrome MCP 爬蟲後呼叫此函數，結果自動同步至 Google Sheets，所有人立即可見。</div>
+      <div class="code-block">
+injectCrawlResult(<span class="code-n">1</span>, {<br>
+&nbsp;&nbsp;scores: { market:<span class="code-n">7</span>, demand:<span class="code-n">7</span>, competition:<span class="code-n">6</span>, diff:<span class="code-n">6</span>, complexity:<span class="code-n">8</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;explanation: { market:<span class="code-s">"說明..."</span> } },<br>
+&nbsp;&nbsp;keywords: { main:[<span class="code-s">"關鍵字"</span>], trendScore:<span class="code-n">38</span>, trend:<span class="code-s">"急升"</span> },<br>
+&nbsp;&nbsp;platforms: { shopee:{count:<span class="code-s">"15件"</span>, sourceUrl:<span class="code-s">"..."</span>},<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ptt: <span class="code-k">null</span> }, <span class="code-c">// null = 無資料，不計分</span><br>
+&nbsp;&nbsp;social: { ptt:<span class="code-k">null</span>, dcard:{score:<span class="code-n">72</span>, notes:<span class="code-s">"..."</span>} },<br>
+&nbsp;&nbsp;swot: { s:[<span class="code-s">"優勢"</span>], w:[<span class="code-s">"劣勢"</span>], o:[<span class="code-s">"機會"</span>], t:[<span class="code-s">"威脅"</span>] },<br>
+&nbsp;&nbsp;actions: [{week:<span class="code-s">"第1週"</span>, priority:<span class="code-s">"高"</span>, title:<span class="code-s">"行動"</span>, desc:<span class="code-s">"說明"</span>}],<br>
+&nbsp;&nbsp;sources: [{type:<span class="code-s">"Chrome MCP"</span>, dataPoints:<span class="code-s">"資料點"</span>, url:<span class="code-s">"..."</span>, retrievedAt:<span class="code-s">"2026-04-27"</span>}],<br>
+&nbsp;&nbsp;dataIntegrity: { credibilityScore:<span class="code-n">75</span>, missingData:[<span class="code-s">"PChome"</span>],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;contradictions:<span class="code-s">"無"</span>, searchDate:<span class="code-s">"2026-04-27"</span> }<br>
+});
+      </div>
+    </div>
+  </div>
+
+</div><!-- end main -->
+</div><!-- end layout -->
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div>
+        <div style="font-size:15px;font-weight:800;" id="modal-title">商品詳情</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="modal-sub"></div>
+      </div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-ftr">
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- GUIDE MODAL -->
+<div class="overlay" id="guide-modal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-hdr">
+      <div style="font-size:15px;font-weight:800;">⚙️ 快速設定指引</div>
+      <button class="close-btn" onclick="document.getElementById('guide-modal').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box">請切換到「設定說明」頁籤，依照步驟完成 Google Apps Script 設定。</div>
+      <button class="btn btn-primary btn-full" onclick="switchTab('guide', document.querySelectorAll('.tab')[2]); document.getElementById('guide-modal').classList.remove('open');">前往設定說明 →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// ★ v13 核心：Google Sheets API 層
+// ══════════════════════════════════════════════════════════
+const LS_API_KEY = 'line_v13_api_url';
+const HARDCODED_API = 'https://script.google.com/macros/s/AKfycbwd7XJcnWZEcOmy_F2_2DaZAQb1eXMfEd8AR00F-K7E2_9jDour3TBXQJuix14bkTCrMA/exec';
+const LS_DATA_KEY = 'line_v13_data';
+let API_URL = '';
+let products = [];
+let nextId = 1;
+let lastSyncTime = null;
+let syncTimer = null;
+let isConnected = false;
+
+// ── API URL 管理 ──
+function loadApiUrl() {
+  // 優先用 hardcoded API（已設定好），其次用 localStorage
+  const saved = localStorage.getItem(LS_API_KEY) || HARDCODED_API || '';
+  API_URL = saved || HARDCODED_API;
+  if (API_URL) {
+    localStorage.setItem(LS_API_KEY, API_URL);
+    document.getElementById('api-url-input').value = API_URL;
+    document.getElementById('api-url-display').textContent = API_URL;
+    document.getElementById('api-url-display').style.display = 'block';
+  }
+  return API_URL;
+}
+
+function saveApiUrl() {
+  const url = document.getElementById('api-url-input').value.trim();
+  if (!url || !url.startsWith('https://script.google.com')) {
+    showToast('請輸入正確的 Apps Script 網址', 'error'); return;
+  }
+  API_URL = url;
+  localStorage.setItem(LS_API_KEY, url);
+  document.getElementById('api-url-display').textContent = url;
+  document.getElementById('api-url-display').style.display = 'block';
+  showToast('✅ 已儲存 API 網址，正在測試連線...', 'success');
+  testConnection();
+}
+
+// ── 連線測試 ──
+async function testConnection() {
+  if (!API_URL) { showToast('請先儲存 API 網址', 'error'); return; }
+  setSyncState('syncing', '測試連線...');
+  try {
+    const res = await fetch(`${API_URL}?action=ping`);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      isConnected = true;
+      setSyncState('synced', '✅ Google Sheets 已連線');
+      setConnStatus('✅ 已連線', 'var(--green)');
+      updateSetupBanner(true);
+      showToast('✅ ' + data.msg, 'success');
+      await loadFromSheets();
+    } else {
+      throw new Error(data.error || '連線失敗');
+    }
+  } catch(e) {
+    isConnected = false;
+    setSyncState('error', '❌ 連線失敗');
+    setConnStatus('❌ 未連線', 'var(--red)');
+    showToast('連線失敗：' + e.message + '｜請確認 Apps Script 已部署且存取權限為「所有人」', 'error', 6000);
+  }
+}
+
+// ── 從 Sheets 載入 ──
+async function loadFromSheets() {
+  if (!API_URL) { loadFromLocal(); return; }
+  setSyncState('syncing', '從 Sheets 載入...');
+  try {
+    const res = await fetch(`${API_URL}?action=read&t=${Date.now()}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (data.products && Array.isArray(data.products) && data.products.length > 0) {
+      products = data.products;
+      nextId = data.nextId || (Math.max(...data.products.map(p => p.id || 0)) + 1);
+      products.forEach(p => computeMargin(p));
+      // 同步快取到 localStorage
+      localStorage.setItem(LS_DATA_KEY, JSON.stringify({ products, nextId }));
+      lastSyncTime = new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      isConnected = true;
+      setSyncState('synced', '☁️ Sheets 已同步');
+      showToast(`✅ 從 Sheets 載入 ${products.length} 筆`, 'success');
+    } else {
+      setSyncState('synced', '☁️ Sheets（空）');
+    }
+  } catch(e) {
+    setSyncState('error', '⚠️ 載入失敗，用本機資料');
+    loadFromLocal();
+    showToast('Sheets 載入失敗，改用本機快取：' + e.message, 'error', 5000);
+  }
+  renderQueue(); renderAll();
+  updateStatusPanel();
+}
+
+// ── 本機快取降級 ──
+function loadFromLocal() {
+  try {
+    const raw = localStorage.getItem(LS_DATA_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      products = data.products || [];
+      nextId = data.nextId || 1;
+      products.forEach(p => computeMargin(p));
+    }
+  } catch(e) {}
+}
+
+// ── 儲存到 Sheets ──
+async function saveToSheets() {
+  const payload = { products, nextId, savedAt: new Date().toISOString() };
+  // 先存本機快取
+  localStorage.setItem(LS_DATA_KEY, JSON.stringify(payload));
+  if (!API_URL) { setSyncState('synced', '💾 本機（未設定 Sheets）'); updateStatusPanel(); return; }
+  setSyncState('syncing', '儲存中...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'write', products: payload })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    lastSyncTime = new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    isConnected = true;
+    setSyncState('synced', '☁️ 已同步至 Sheets');
+    updateStatusPanel();
+  } catch(e) {
+    setSyncState('error', '⚠️ 同步失敗（已存本機）');
+    showToast('Sheets 同步失敗，資料已存本機：' + e.message, 'error', 5000);
+  }
+}
+
+async function manualSync() {
+  await loadFromSheets();
+  showToast('🔄 已從 Sheets 同步最新資料', 'success');
+}
+
+function scheduleAutoSave() {
+  clearTimeout(syncTimer);
+  setSyncState('syncing', '待儲存...');
+  syncTimer = setTimeout(async () => { await saveToSheets(); }, 2000);
+}
+
+// ══════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════
+function showToast(msg, type='info', duration=3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), duration);
+}
+function setSyncState(state, label) {
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-label').textContent = label;
+}
+function setConnStatus(txt, color) {
+  const el = document.getElementById('conn-status');
+  el.textContent = txt;
+  el.style.color = color;
+}
+function updateStatusPanel() {
+  const done = products.filter(p => p.status === 'done').length;
+  document.getElementById('conn-count').textContent = products.length + ' 筆';
+  document.getElementById('conn-done').textContent = done + ' 筆';
+  document.getElementById('conn-time').textContent = lastSyncTime ? lastSyncTime : '—';
+  document.getElementById('queue-count').textContent = products.length + ' 個';
+}
+function updateSetupBanner(connected) {
+  const banner = document.getElementById('setup-banner');
+  if (connected) {
+    banner.classList.add('connected');
+    ['step1-num','step2-num','step3-num'].forEach(id => {
+      document.getElementById(id).classList.add('done');
+      document.getElementById(id).textContent = '✓';
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// PRODUCT LOGIC
+// ══════════════════════════════════════════════════════════
+function safeFixed(n, d=1) { return (n != null && !isNaN(n)) ? Number(n).toFixed(d) : '—'; }
+function mc(n) { return n >= 30 ? 'var(--green)' : n >= 15 ? 'var(--yellow)' : 'var(--red)'; }
+function verdict(s) {
+  if (s == null) return { label:'待爬蟲', cls:'wait' };
+  if (s >= 70) return { label:'推進', cls:'go' };
+  if (s >= 50) return { label:'條件評估', cls:'maybe' };
+  return { label:'不採用', cls:'no' };
+}
+
+function computeMargin(p) {
+  if (p.price > 0) {
+    p.marginWith    = (p.price - p.cost - p.logistic - p.packing) / p.price * 100;
+    p.marginWithout = (p.price - p.cost - p.packing) / p.price * 100;
+  }
+  const mVal = p.cost > 0 ? Math.min(p.marginWith ?? 0, p.marginWithout ?? 0) : null;
+  if (mVal != null) {
+    p.marginScore = mVal >= 40 ? 10 : mVal >= 30 ? 8 : mVal >= 20 ? 5 : mVal >= 10 ? 3 : 1;
+  } else { p.marginScore = 0; }
+}
+
+function addProduct() {
+  const name     = document.getElementById('inp-name').value.trim();
+  const brand    = document.getElementById('inp-brand').value.trim();
+  const url      = document.getElementById('inp-url').value.trim();
+  const price    = parseFloat(document.getElementById('inp-price').value) || 0;
+  const cost     = parseFloat(document.getElementById('inp-cost').value) || 0;
+  const logistic = parseFloat(document.getElementById('inp-logistic').value) || 0;
+  const packing  = parseFloat(document.getElementById('inp-packing').value) || 0;
+  const note     = document.getElementById('inp-note').value.trim();
+  if (!name) { showToast('請輸入商品名稱', 'error'); return; }
+  if (!price) { showToast('請輸入售價', 'error'); return; }
+  const p = { id:nextId++, name, brand, url, price, cost, logistic, packing, note,
+    status:'waiting', crawlData:null, totalScore:null, marginWith:null, marginWithout:null,
+    marginScore:0, scores:{market:0,demand:0,competition:0,diff:0,complexity:0}, scoreExplanations:{} };
+  computeMargin(p);
+  products.push(p);
+  ['inp-name','inp-brand','inp-url','inp-price','inp-cost','inp-logistic','inp-packing','inp-note']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  renderQueue(); renderAll();
+  scheduleAutoSave();
+  showToast(`✅ "${name}" 已加入，同步至 Sheets 中...`, 'success');
+}
+
+function removeProduct(id) {
+  products = products.filter(p => p.id !== id);
+  renderQueue(); renderAll(); scheduleAutoSave();
+  showToast('已移除商品', 'info');
+}
+
+// ══════════════════════════════════════════════════════════
+// ★ 核心 API：爬蟲結果注入 → 自動同步 Sheets
+// ══════════════════════════════════════════════════════════
+async function injectCrawlResult(productId, data) {
+  const p = products.find(x => x.id === productId);
+  if (!p) { console.error('找不到商品 id:', productId); return false; }
+  p.status = 'done';
+  p.crawlData = data;
+  if (data.scores) {
+    p.scores = {
+      market:      Math.min(10, Math.max(1, parseInt(data.scores.market)      || 5)),
+      demand:      Math.min(10, Math.max(1, parseInt(data.scores.demand)      || 5)),
+      competition: Math.min(10, Math.max(1, parseInt(data.scores.competition) || 5)),
+      diff:        Math.min(10, Math.max(1, parseInt(data.scores.diff)        || 5)),
+      complexity:  Math.min(10, Math.max(1, parseInt(data.scores.complexity)  || 7)),
+    };
+    p.scoreExplanations = data.scores.explanation || {};
+  }
+  const w = { market:20, demand:20, competition:20, diff:20, complexity:10 };
+  let wSum = 0;
+  Object.entries(w).forEach(([k,v]) => { wSum += p.scores[k] * v / 10; });
+  wSum += p.marginScore;
+  p.totalScore = Math.round(Math.min(100, Math.max(0, wSum)));
+  if (data.swot)    p.swot    = data.swot;
+  if (data.actions) p.actions = data.actions;
+  renderQueue(); renderAll();
+  console.log(`✅ "${p.name}" 注入完成，總分：${p.totalScore}`);
+  // ★ 自動同步至 Google Sheets
+  await saveToSheets();
+  showToast(`✅ "${p.name}" 結果已同步至 Sheets，所有人立即可見`, 'success', 4000);
+  return true;
+}
+
+function setCrawling(id) {
+  const p = products.find(x => x.id === id);
+  if (p) { p.status = 'crawling'; renderQueue(); renderAll(); scheduleAutoSave(); }
+}
+function setCrawlError(id, msg) {
+  const p = products.find(x => x.id === id);
+  if (p) { p.status = 'error'; p.crawlData = { error: msg }; renderQueue(); renderAll(); scheduleAutoSave(); }
+}
+function getPendingProducts() {
+  return products.filter(p => p.status === 'waiting').map(p => ({
+    id:p.id, name:p.name, brand:p.brand||'', price:p.price, url:p.url||'', note:p.note||''
+  }));
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════
+function renderQueue() {
+  const el = document.getElementById('pq');
+  updateStatusPanel();
+  if (!products.length) {
+    el.innerHTML = `<div class="empty" style="padding:20px;"><p style="font-size:12px;">尚未加入商品</p></div>`;
+    return;
+  }
+  const smap = {
+    waiting:  { label:'⏳ 等待爬蟲', bg:'#fef3c7', color:'#92400e' },
+    crawling: { label:'🔍 爬蟲中',   bg:'#eff6ff', color:'#1d4ed8' },
+    done:     { label:'✓ 完成',       bg:'#d1fae5', color:'#065f46' },
+    error:    { label:'! 失敗',        bg:'#fee2e2', color:'#991b1b' },
+  };
+  el.innerHTML = products.map(p => {
+    const s = smap[p.status] || smap.waiting;
+    return `<div class="queue-item ${p.status}">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;">${p.name}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px;">NT$${p.price.toLocaleString()} ${p.brand ? '· '+p.brand : ''}</div>
+        <span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:4px;background:${s.bg};color:${s.color};">${s.label}</span>
+        ${p.status==='done' ? '<span class="sheets-tag" style="margin-left:4px;">📊 Sheets 已同步</span>' : ''}
+      </div>
+      <button class="btn-danger-xs" onclick="removeProduct(${p.id})">×</button>
+    </div>`;
+  }).join('');
+}
+
+function renderAll() { renderResults(); renderCost(); }
+
+function renderResults() {
+  const statsRow = document.getElementById('stats-row');
+  const wrap = document.getElementById('results-wrap');
+  if (!products.length) {
+    statsRow.style.display = 'none';
+    wrap.innerHTML = `<div class="empty"><p>新增商品並完成爬蟲後顯示<br><small style="color:var(--muted);">資料同步至 Google Sheets，任何人開啟都能看到</small></p></div>`;
+    return;
+  }
+  statsRow.style.display = 'grid';
+  const done = products.filter(p => p.status==='done' && p.totalScore!=null);
+  const go   = done.filter(p => p.totalScore>=70).length;
+  const mws  = done.filter(p => p.cost>0 && p.marginWith!=null).map(p => p.marginWith);
+  const mos  = done.filter(p => p.cost>0 && p.marginWithout!=null).map(p => p.marginWithout);
+  document.getElementById('st-total').textContent = products.length;
+  document.getElementById('st-go').textContent    = go;
+  document.getElementById('st-m1').textContent    = mws.length ? (mws.reduce((a,b)=>a+b)/mws.length).toFixed(1)+'%' : '—';
+  document.getElementById('st-m2').textContent    = mos.length ? (mos.reduce((a,b)=>a+b)/mos.length).toFixed(1)+'%' : '—';
+
+  const sorted = [...products].sort((a,b) => (b.totalScore??-1)-(a.totalScore??-1));
+  wrap.innerHTML = `<table>
+    <thead><tr>
+      <th>#</th><th>商品名稱</th><th>售價</th><th>毛利（含運/不含運）</th>
+      <th>市場數據</th><th>評分</th><th>判定</th><th></th>
+    </tr></thead>
+    <tbody>${sorted.map((p,i) => {
+      const v = verdict(p.totalScore);
+      const cd = p.crawlData;
+      const trendScore = cd?.keywords?.trendScore;
+      const shopeeCount = cd?.platforms?.shopee?.count;
+      const credScore = cd?.dataIntegrity?.credibilityScore;
+      return `<tr>
+        <td style="font-weight:700;color:var(--muted);">#${i+1}</td>
+        <td>
+          <div style="font-weight:700;">${p.name}</div>
+          ${p.brand ? `<div style="font-size:11px;color:var(--dim);">${p.brand}</div>` : ''}
+          ${p.status==='done' ? '<span style="font-size:10px;background:var(--green-dim);color:var(--green-dark);padding:1px 5px;border-radius:3px;">✓ 實搜</span> <span class="sheets-tag">📊 Sheets</span>' : ''}
+        </td>
+        <td style="font-weight:700;white-space:nowrap;">NT$${p.price.toLocaleString()}</td>
+        <td>
+          ${p.cost>0 ? `<div class="margin-col">
+            <div class="margin-row"><span class="margin-label">含運</span><div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${Math.max(0,Math.min(100,p.marginWith??0))}%;background:${mc(p.marginWith??0)};"></div></div><span class="margin-val" style="color:${mc(p.marginWith??0)};">${safeFixed(p.marginWith)}%</span></div>
+            <div class="margin-row"><span class="margin-label">不含運</span><div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${Math.max(0,Math.min(100,p.marginWithout??0))}%;background:${mc(p.marginWithout??0)};"></div></div><span class="margin-val" style="color:${mc(p.marginWithout??0)};">${safeFixed(p.marginWithout)}%</span></div>
+          </div>` : `<span style="font-size:11px;color:var(--muted);">未填成本</span>`}
+        </td>
+        <td>
+          ${p.status==='waiting' ? `<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:5px;">⏳ 等待爬蟲</span>` :
+            p.status==='crawling' ? `<span style="font-size:11px;color:#1d4ed8;">🔍 爬蟲中...</span>` :
+            p.status==='error' ? `<span style="font-size:11px;color:var(--red);">⚠️ 爬蟲失敗</span>` :
+            cd ? `<div style="font-size:12px;">
+              <div style="color:var(--dim);">Trends: <strong>${trendScore!=null ? trendScore+'/100' : '無資料'}</strong></div>
+              <div style="color:var(--dim);">蝦皮競品: <strong>${shopeeCount||'無資料'}</strong></div>
+              ${credScore!=null ? `<div style="color:var(--dim);">可信度: <strong>${credScore}/100</strong></div>` : ''}
+            </div>` : '—'}
+        </td>
+        <td>
+          ${p.totalScore!=null ? `<div style="text-align:center;"><span class="score-num score-${v.cls}">${p.totalScore}</span><div style="font-size:10px;color:var(--muted);margin-top:2px;">/100</div></div>` : `<span class="score-num score-wait">—</span>`}
+        </td>
+        <td><span class="badge badge-${v.cls}">${v.label}</span></td>
+        <td><button class="btn btn-outline btn-xs" onclick="showDetail(${p.id})">詳情</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+function renderCost() {
+  const el = document.getElementById('cost-wrap');
+  if (!products.length) { el.innerHTML = `<div class="empty"><p>新增商品後顯示</p></div>`; return; }
+  el.innerHTML = `<table>
+    <thead><tr><th>商品名稱</th><th>售價</th><th>進貨</th><th>運費</th><th>包材</th><th>含運毛利</th><th>不含運毛利</th><th>LINE達標</th></tr></thead>
+    <tbody>${products.map(p => {
+      const ok = p.marginWith!=null && p.marginWithout!=null && (p.marginWith>=30 || p.marginWithout>=35);
+      return `<tr>
+        <td style="font-weight:700;">${p.name}</td>
+        <td>NT$${p.price.toLocaleString()}</td>
+        <td>${p.cost>0?'NT$'+p.cost:'—'}</td>
+        <td>${p.logistic>0?'NT$'+p.logistic:'—'}</td>
+        <td>${p.packing>0?'NT$'+p.packing:'—'}</td>
+        <td style="font-weight:700;color:${mc(p.marginWith??0)};">${p.cost>0?safeFixed(p.marginWith)+'%':'—'}</td>
+        <td style="font-weight:700;color:${mc(p.marginWithout??0)};">${p.cost>0?safeFixed(p.marginWithout)+'%':'—'}</td>
+        <td>${p.cost>0 ? `<span style="font-size:12px;font-weight:700;color:${ok?'var(--green)':'var(--red)'};">${ok?'✅ 達標':'❌ 未達'}</span>` : `<span style="font-size:11px;color:var(--muted);">待確認</span>`}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+
+// ── DETAIL MODAL ──
+function showDetail(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const cd = p.crawlData;
+  const v  = verdict(p.totalScore);
+  document.getElementById('modal-title').textContent = p.name;
+  document.getElementById('modal-sub').textContent = `${p.brand||''} · NT$${p.price.toLocaleString()} · ${v.label}${p.totalScore!=null?'（'+p.totalScore+'/100）':''}`;
+  const body = document.getElementById('modal-body');
+  if (!cd || p.status==='waiting') {
+    body.innerHTML = `<div class="warn-box">⏳ 尚未爬蟲，請告訴 Claude：「請幫我爬商品 #${p.id} ${p.name}」</div>`;
+    document.getElementById('detail-modal').classList.add('open'); return;
+  }
+  if (p.status==='error') {
+    body.innerHTML = `<div class="warn-box">⚠️ 爬蟲失敗：${cd.error||'未知錯誤'}</div>`;
+    document.getElementById('detail-modal').classList.add('open'); return;
+  }
+  const dims = [
+    ['市場規模',p.scores.market,p.scoreExplanations.market||''],
+    ['需求強度',p.scores.demand,p.scoreExplanations.demand||''],
+    ['競爭密度',p.scores.competition,p.scoreExplanations.competition||''],
+    ['差異化空間',p.scores.diff,p.scoreExplanations.diff||''],
+    ['作業複雜度',p.scores.complexity,p.scoreExplanations.complexity||''],
+  ];
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px;">
+      <div>
+        <div class="modal-section-title" style="margin-bottom:10px;">📊 各維度評分</div>
+        ${dims.map(([lbl,score,exp]) => {
+          const col = score>=7?'var(--green)':score>=5?'var(--yellow)':'var(--red)';
+          return '<div class="srow"><div class="srow-lbl">'+lbl+'</div><div class="srow-bar"><div class="srow-fill" style="width:'+score*10+'%;background:'+col+';"></div></div><div class="srow-val" style="color:'+col+';">'+score+'</div></div>'+(exp?'<div style="font-size:11px;color:var(--muted);margin:-6px 0 8px 123px;line-height:1.5;">'+exp+'</div>':'');
+        }).join('')}
+        <div class="srow"><div class="srow-lbl">毛利可行性</div><div class="srow-bar"><div class="srow-fill" style="width:${p.marginScore*10}%;background:${mc(p.marginWith??0)};"></div></div><div class="srow-val" style="color:${mc(p.marginWith??0)};">${p.marginScore}</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+        <div style="font-size:56px;font-weight:900;color:${v.cls==='go'?'var(--green)':v.cls==='maybe'?'var(--yellow)':'var(--red)'};line-height:1;">${p.totalScore??'—'}</div>
+        <div style="font-size:13px;color:var(--muted);">/ 100</div>
+        <span class="badge badge-${v.cls}" style="font-size:13px;padding:5px 14px;">${v.label}</span>
+        <span class="sheets-tag">📊 已同步至 Sheets</span>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">📈 Google Trends 台灣搜尋趨勢（實搜）</div>
+      ${(function(){
+        var kw = p.crawlData && p.crawlData.keywords;
+        if(!kw) return '<div style="background:var(--surface3);border:1.5px dashed var(--border-strong);border-radius:8px;padding:8px 13px;font-size:11px;color:var(--muted);">⚠️ 無 Trends 資料</div>';
+        var ts = kw.trendScore, tc = kw.trendClass, tr = kw.trend, trR = kw.trendReason;
+        var mainKws = kw.main || [], st = kw.actionKws && kw.actionKws.shopeeTitle, lc = kw.actionKws && kw.actionKws.lineCopy || [];
+        var html = '';
+        if(ts != null) {
+          var col = tc==='trend-up'?'var(--green)':tc==='trend-down'?'var(--red)':'var(--yellow)';
+          var arrow = tc==='trend-up'?'↑':tc==='trend-down'?'↓':'→';
+          html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;"><div style="font-size:36px;font-weight:800;color:'+col+';">'+ts+'</div><div><div style="font-size:13px;font-weight:700;">'+(tr||'—')+' '+arrow+'</div><div style="font-size:11px;color:var(--dim);">台灣 Google Trends 指數（0–100）</div></div></div>';
+        } else {
+          html += '<div style="background:var(--surface3);border:1.5px dashed var(--border-strong);border-radius:8px;padding:8px 13px;font-size:11px;color:var(--muted);">⚠️ Google Trends：無資料</div>';
+        }
+        if(trR) html += '<div style="font-size:12px;color:var(--dim);background:var(--accent-dim);border-radius:7px;padding:8px 12px;margin:8px 0;line-height:1.7;">'+trR+'</div>';
+        if(mainKws.length) html += '<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:4px;">🔥 核心關鍵字</div><div style="display:flex;flex-wrap:wrap;gap:5px;">'+mainKws.map(function(k){return '<span style="font-size:11px;padding:2px 8px;border-radius:5px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;">'+k+'</span>';}).join('')+'</div></div>';
+        if(st) html += '<div style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;"><div style="font-size:11px;color:var(--dim);margin-bottom:3px;">🛒 蝦皮標題建議</div><div style="background:var(--accent-dim);border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e40af;">'+st+'</div></div>';
+        if(lc.length) html += '<div style="margin-top:8px;"><div style="font-size:11px;color:var(--dim);margin-bottom:3px;">💬 LINE 主打詞</div><div style="display:flex;flex-wrap:wrap;gap:5px;">'+lc.map(function(k){return '<span style="font-size:11px;padding:2px 8px;border-radius:5px;background:var(--green-dim);border:1px solid #6ee7b7;color:var(--green-dark);">'+k+'</span>';}).join('')+'</div></div>';
+        return html;
+      })()}
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">🛒 多平台競品分析（Chrome MCP 實搜）</div>
+      ${(function(){
+        var pl = p.crawlData && p.crawlData.platforms;
+        if(!pl) return '<div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--muted);text-align:center;">無平台資料</div>';
+        var plist = [['🛒 蝦皮',pl.shopee],['📺 momo',pl.momo],['🖥 PChome',pl.pchome],['🔵 Yahoo',pl.yahoo],['🏪 家樂福',pl.carrefour]];
+        var oc = pl.overallCompetition || '—';
+        var ocColor = oc==='低'?'var(--green-dim)':oc==='高'?'var(--red-dim)':'var(--yellow-dim)';
+        var ocText = oc==='低'?'var(--green-dark)':oc==='高'?'var(--red-dark)':'var(--yellow-dark)';
+        var html = '<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--dim);">整體競爭：</span><span style="font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;background:'+ocColor+';color:'+ocText+';">'+oc+'</span><span style="font-size:12px;font-weight:700;">'+(pl.marketOpportunity||'')+'</span></div>';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">';
+        plist.forEach(function(item){
+          var name = item[0], v = item[1];
+          var has = v && v.count != null && v.count !== 'null' && v.count !== '';
+          html += '<div style="border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--surface2);">';
+          html += '<div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:4px;">'+name+'</div>';
+          html += '<div style="font-size:'+(has?'13':'11')+'px;font-weight:'+(has?'700':'400')+';'+(has?'':'color:var(--muted);font-style:italic;')+'">'+(has?v.count:'⚠️ 未爬取')+'</div>';
+          if(v && v.status && v.status!=='null') html += '<div style="font-size:11px;color:var(--muted);">'+v.status+'</div>';
+          if(v && v.sourceUrl && v.sourceUrl!=='null') html += '<a href="'+v.sourceUrl+'" target="_blank" style="font-size:10px;color:var(--accent);">查看 →</a>';
+          html += '</div>';
+        });
+        html += '</div>';
+        if(pl.opportunityDetail) html += '<div style="margin-top:8px;font-size:12px;color:var(--dim);padding:8px 10px;background:var(--surface2);border-radius:6px;">'+pl.opportunityDetail+'</div>';
+        return html;
+      })()}
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">📢 社群媒體聲量（實搜）</div>
+      ${(function(){
+        var soc = p.crawlData && p.crawlData.social;
+        if(!soc) return '<div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--muted);text-align:center;">無社群資料</div>';
+        var socList = [['FB',soc.facebook],['IG',soc.instagram],['Threads',soc.threads],['PTT',soc.ptt],['Dcard',soc.dcard],['小紅書',soc.xiaohongshu],['TikTok',soc.tiktok],['新聞',soc.news],['KOL',soc.kol]];
+        var html = '';
+        if(soc.dataNote) html += '<div style="background:var(--yellow-dim);border:1px solid #fde68a;border-radius:8px;padding:8px 13px;font-size:12px;color:var(--yellow-dark);margin-bottom:10px;">'+soc.dataNote+'</div>';
+        html += '<div style="display:flex;flex-direction:column;gap:5px;">';
+        socList.forEach(function(item){
+          var name = item[0], v = item[1];
+          if(v === null || v === undefined){
+            html += '<div style="display:flex;align-items:center;gap:8px;font-size:12px;"><div style="width:70px;flex-shrink:0;font-size:11px;color:var(--dim);font-weight:700;">'+name+'</div><div style="flex:1;background:var(--surface3);border:1.5px dashed var(--border-strong);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--muted);">⚠️ 無資料（不計入評分）</div></div>';
+          } else if(typeof v==='object' && v.score != null){
+            var bc = v.score>=60?'var(--green)':v.score>=35?'var(--accent)':'var(--muted)';
+            html += '<div style="display:flex;align-items:center;gap:8px;font-size:12px;"><div style="width:70px;flex-shrink:0;font-size:11px;color:var(--dim);font-weight:700;">'+name+'</div><div style="flex:1;height:5px;background:var(--border);border-radius:3px;"><div style="height:100%;border-radius:3px;background:'+bc+';width:'+v.score+'%;"></div></div><div style="font-size:11px;font-weight:700;min-width:26px;">'+v.score+'</div><div style="font-size:11px;color:var(--muted);flex:2;">'+(v.notes||'')+'</div>'+(v.sourceUrl?'<a href="'+v.sourceUrl+'" target="_blank" style="font-size:10px;color:var(--accent);">查看</a>':'')+'</div>';
+          }
+        });
+        html += '</div>';
+        return html;
+      })()}
+    </div>
+
+    ${p.crawlData && p.crawlData.brand ? '<div class="modal-section"><div class="modal-section-title">🏷 品牌分析</div><table style="width:100%;font-size:12px;">'+(p.crawlData.brand.brandName?'<tr><td style="color:var(--dim);padding:4px 0;width:90px;">品牌</td><td style="font-weight:700;">'+p.crawlData.brand.brandName+'</td></tr>':'')+(p.crawlData.brand.certifications&&p.crawlData.brand.certifications.length?'<tr><td style="color:var(--dim);padding:4px 0;">認證</td><td>'+p.crawlData.brand.certifications.join('、')+'</td></tr>':'')+(p.crawlData.brand.marketPosition?'<tr><td style="color:var(--dim);padding:4px 0;">市場定位</td><td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;background:'+(p.crawlData.brand.marketPosition==='平價'?'var(--green-dim)':'var(--yellow-dim)')+';">'+p.crawlData.brand.marketPosition+'</span></td></tr>':'')+(p.crawlData.brand.targetAudience?'<tr><td style="color:var(--dim);padding:4px 0;">目標客群</td><td>'+p.crawlData.brand.targetAudience+'</td></tr>':'')+(p.crawlData.brand.reviewCount?'<tr><td style="color:var(--dim);padding:4px 0;">銷售評價</td><td>'+p.crawlData.brand.reviewCount+'</td></tr>':'')+(p.crawlData.brand.priceRange?'<tr><td style="color:var(--dim);padding:4px 0;">價格區間</td><td>'+p.crawlData.brand.priceRange+'</td></tr>':'')+'</table>'+(p.crawlData.brand.topBrands&&p.crawlData.brand.topBrands.length?'<div style="margin-top:10px;"><div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:5px;">🏆 同類熱門競品</div><div style="display:flex;flex-wrap:wrap;gap:5px;">'+p.crawlData.brand.topBrands.slice(0,5).map(function(b){return '<span style="font-size:11px;padding:2px 8px;border-radius:5px;background:var(--green-dim);border:1px solid #6ee7b7;color:var(--green-dark);">'+b+'</span>';}).join('')+'</div></div>':'')+(p.crawlData.brand.painPoints&&p.crawlData.brand.painPoints.length?'<div style="margin-top:10px;"><div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:5px;">😤 消費者痛點</div><ul style="margin:0;padding-left:16px;">'+p.crawlData.brand.painPoints.map(function(pt){return '<li style="font-size:11px;color:var(--dim);line-height:1.8;">'+pt+'</li>';}).join('')+'</ul></div>':'')+'</div>' : ''}
+
+    ${p.swot ? '<div class="modal-section"><div class="modal-section-title">📋 SWOT 分析</div><div class="swot-grid">'+['s','w','o','t'].map(function(k){var labels={s:'S 優勢',w:'W 劣勢',o:'O 機會',t:'T 威脅'};var items=Array.isArray(p.swot[k])?p.swot[k]:[];return '<div class="swot-'+k+'"><div class="swot-label">'+labels[k]+'</div>'+(items.length?'<ul class="swot-list">'+items.map(function(i){return '<li>'+i+'</li>';}).join('')+'</ul>':'<div style="font-size:11px;opacity:.6;">—</div>')+'</div>';}).join('')+'</div></div>' : ''}
+    ${p.actions&&p.actions.length ? '<div class="modal-section"><div class="modal-section-title">🚀 執行建議</div><div class="action-plan">'+p.actions.map(function(a){var wc=a.week&&a.week.includes('1')?'aw-1':a.week&&(a.week.includes('2')||a.week.includes('3'))?'aw-2':'aw-3';return '<div class="action-item"><span class="action-week '+wc+'">'+(a.week||'—')+'</span><div><div class="action-title">'+(a.priority==='高'?'🔴':'🟡')+' '+a.title+'</div><div class="action-desc">'+a.desc+'</div></div></div>';}).join('')+'</div></div>' : ''}
+    ${cd.sources&&cd.sources.length ? '<div class="modal-section"><div class="modal-section-title">🔗 資料來源</div>'+cd.sources.map(function(s){return '<div class="source-item"><span class="source-type">'+(s.type||'來源')+'</span><div><div style="font-size:11px;color:var(--dim);">'+(s.dataPoints||'—')+'</div>'+(s.url&&s.url!=='null'?'<a href="'+s.url+'" target="_blank" style="font-size:10px;color:var(--accent);">'+s.url+'</a>':'')+'<div style="font-size:10px;color:var(--muted);">'+(s.retrievedAt||'')+'</div></div></div>';}).join('')+'</div>' : ''}
+    <div class="modal-section" style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;">
+      <div class="modal-section-title">📋 資料可信度</div>
+      ${cd.dataIntegrity&&cd.dataIntegrity.credibilityScore!=null?'<div style="margin-bottom:8px;"><span style="font-size:12px;">可信度：</span><strong style="color:'+(cd.dataIntegrity.credibilityScore>=80?'var(--green)':cd.dataIntegrity.credibilityScore>=60?'var(--yellow)':'var(--red)')+';">'+cd.dataIntegrity.credibilityScore+'/100</strong></div>':''}
+      ${cd.dataIntegrity&&cd.dataIntegrity.missingData&&cd.dataIntegrity.missingData.length?'<div style="font-size:11px;margin-bottom:6px;">⚠️ 未爬取：<span style="color:var(--red);">'+cd.dataIntegrity.missingData.join('、')+'</span></div>':''}
+      <div style="font-size:11px;color:var(--dim);">搜尋日期：${cd.dataIntegrity&&cd.dataIntegrity.searchDate?cd.dataIntegrity.searchDate:'—'}</div>
+    </div>
+  `;
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('detail-modal').classList.remove('open'); }
+document.getElementById('detail-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+// ── TABS ──
+function switchTab(name, btn) {
+  ['results','cost','guide'].forEach(t => { document.getElementById('tab-'+t).style.display = t===name?'':'none'; });
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+function showGuide() {
+  switchTab('guide', document.querySelectorAll('.tab')[2]);
+}
+
+// ── EXCEL ──
+function exportExcel() {
+  if (!products.length) { showToast('尚無商品', 'error'); return; }
+  const wb = XLSX.utils.book_new();
+  const sorted = [...products].sort((a,b)=>(b.totalScore??-1)-(a.totalScore??-1));
+  const date = new Date().toISOString().slice(0,10);
+  const r1 = [['排名','商品名稱','品牌','售價','進貨','運費','包材','含運毛利%','不含運毛利%','達標','評分','判定','可信度','搜尋日期','Sheets同步']];
+  sorted.forEach((p,i) => {
+    const v = verdict(p.totalScore);
+    const cd = p.crawlData;
+    const ok = p.marginWith!=null && p.marginWithout!=null && (p.marginWith>=30||p.marginWithout>=35);
+    r1.push([i+1,p.name,p.brand||'',p.price,p.cost||'',p.logistic||0,p.packing||0,
+      p.cost>0&&p.marginWith!=null?+p.marginWith.toFixed(1):'',
+      p.cost>0&&p.marginWithout!=null?+p.marginWithout.toFixed(1):'',
+      p.cost>0?(ok?'✓':'✗'):'待確認',
+      p.totalScore!=null?p.totalScore:'待爬蟲',v.label,
+      cd?.dataIntegrity?.credibilityScore!=null?cd.dataIntegrity.credibilityScore+'/100':'—',
+      cd?.dataIntegrity?.searchDate||'—',
+      p.status==='done'?'✓ 已同步':'—'
+    ]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(r1);
+  ws1['!cols'] = [6,22,12,9,9,9,9,12,14,8,10,10,10,14,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, '選品排名');
+  XLSX.writeFile(wb, `LINE選品評估_v13_${date}.xlsx`);
+  showToast('✅ Excel 匯出完成', 'success');
+}
+
+function clearAll() {
+  if (!confirm('確定清空所有商品？這會清除 Google Sheets 上的資料。')) return;
+  products = []; nextId = 1;
+  saveToSheets();
+  renderQueue(); renderAll();
+  showToast('已清空所有資料', 'info');
+}
+
+// ══════════════════════════════════════════════════════════
+// 初始化
+// ══════════════════════════════════════════════════════════
+(async function init() {
+  loadApiUrl();
+  setSyncState('syncing', '初始化中...');
+  if (API_URL) {
+    setConnStatus('連線中...', 'var(--yellow)');
+    await testConnection();
+  } else {
+    // 無 API URL，嘗試讀本機快取
+    loadFromLocal();
+    renderQueue(); renderAll();
+    setSyncState('error', '⚠️ 尚未設定 Sheets');
+    setConnStatus('⚠️ 未設定', 'var(--yellow)');
+    showToast('⚠️ 請先設定 Google Sheets API 網址（點右上角「設定說明」）', 'info', 6000);
+  }
+  // 每 30 秒自動同步
+  setInterval(async () => {
+    if (API_URL && document.visibilityState==='visible') {
+      const res = await fetch(`${API_URL}?action=read&t=${Date.now()}`).then(r=>r.json()).catch(()=>null);
+      if (res?.products && res.products.length !== products.length) {
+        await loadFromSheets();
+        showToast('🔄 偵測到新資料，已自動更新', 'info');
+      }
+    }
+  }, 30000);
+})();
+</script>
+</body>
+</html>
