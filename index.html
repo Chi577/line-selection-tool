@@ -3,65 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LINE 團購選品評估系統 v12</title>
+<title>LINE 團購選品評估系統 v13</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* ══════════════════════════════════════════════════════════
-   TOKEN SYSTEM — data-forward 精準儀表板風格
-   ══════════════════════════════════════════════════════════ */
 :root{
-  --bg:#f0f4f8;
-  --surface:#ffffff;
-  --surface2:#f7f9fc;
-  --surface3:#eef2f7;
-  --border:#dde3ec;
-  --border-strong:#c5cfdf;
-  --accent:#2563eb;
-  --accent-dim:#eff6ff;
+  --bg:#f0f4f8;--surface:#fff;--surface2:#f7f9fc;--surface3:#eef2f7;
+  --border:#dde3ec;--border-strong:#c5cfdf;
+  --accent:#2563eb;--accent-dim:#eff6ff;
   --green:#059669;--green-dim:#d1fae5;--green-dark:#065f46;
   --yellow:#d97706;--yellow-dim:#fef3c7;--yellow-dark:#92400e;
   --red:#dc2626;--red-dim:#fee2e2;--red-dark:#991b1b;
   --purple:#7c3aed;--purple-dim:#f3e8ff;
-  --orange:#ea580c;--orange-dim:#fff7ed;
   --teal:#0891b2;--teal-dim:#e0f2fe;
   --text:#1e293b;--dim:#475569;--muted:#94a3b8;
   --radius:10px;--radius-sm:6px;--radius-lg:14px;
-  /* 共享狀態燈 */
-  --sync-color:var(--green);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;font-size:14px;line-height:1.6;}
 
 /* ── TOPBAR ── */
-.topbar{
-  background:var(--surface);
-  border-bottom:2px solid var(--border);
-  padding:10px 24px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-  box-shadow:0 2px 8px rgba(0,0,0,.06);
-}
-.topbar-brand{display:flex;align-items:center;gap:10px;}
-.topbar-brand h1{font-size:15px;font-weight:800;letter-spacing:-.3px;}
-.version-tag{font-size:10px;font-weight:700;background:var(--accent);color:#fff;padding:2px 7px;border-radius:4px;letter-spacing:.5px;}
+.topbar{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.topbar-brand h1{font-size:15px;font-weight:800;}
+.version-tag{font-size:10px;font-weight:700;background:var(--green);color:#fff;padding:2px 7px;border-radius:4px;margin-left:8px;}
 .topbar-meta{font-size:11px;color:var(--muted);margin-top:2px;}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 
-/* 共享狀態指示器 */
-.sync-indicator{
-  display:flex;align-items:center;gap:6px;
-  padding:5px 11px;border-radius:20px;
-  background:var(--surface2);border:1px solid var(--border);
-  font-size:11px;font-weight:600;color:var(--dim);
-  cursor:pointer;transition:all .2s;
-  user-select:none;
-}
-.sync-indicator:hover{background:var(--surface3);}
+/* ── SYNC INDICATOR ── */
+.sync-indicator{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;transition:all .2s;user-select:none;}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:all .3s;}
 .sync-dot.synced{background:var(--green);box-shadow:0 0 0 2px var(--green-dim);}
 .sync-dot.syncing{background:var(--yellow);animation:pulse .8s ease-in-out infinite;}
 .sync-dot.error{background:var(--red);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* ── LAYOUT ── */
 .layout{display:grid;grid-template-columns:340px 1fr;gap:16px;max-width:1400px;margin:0 auto;padding:20px 16px;}
@@ -72,61 +46,34 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC','Microsof
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
 .card-title{font-size:12px;font-weight:800;margin-bottom:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;}
 
-/* ── 共享資料說明橫幅 ── */
-.share-banner{
-  background:linear-gradient(135deg,#eff6ff 0%,#f0fdf4 100%);
-  border:1px solid #bfdbfe;border-radius:10px;
-  padding:12px 16px;font-size:12px;
-}
-.share-banner strong{color:var(--accent);}
-.share-banner .how-steps{display:flex;flex-direction:column;gap:7px;margin-top:10px;}
-.share-step{display:flex;gap:9px;align-items:flex-start;}
-.step-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-.share-step-txt{font-size:12px;line-height:1.5;color:var(--dim);}
-
-/* ── 共享資料狀態面板 ── */
-.storage-panel{
-  background:var(--surface2);
-  border:1px solid var(--border);border-radius:var(--radius);
-  padding:14px 16px;
-}
-.storage-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px;}
-.storage-row:last-child{margin-bottom:0;}
-.storage-label{color:var(--dim);}
-.storage-val{font-weight:700;color:var(--text);}
-.storage-timestamp{font-size:10px;color:var(--muted);}
+/* ── SETUP BANNER ── */
+.setup-banner{background:linear-gradient(135deg,#fef3c7,#fff7ed);border:1.5px solid #fde68a;border-radius:var(--radius);padding:14px 16px;}
+.setup-banner.connected{background:linear-gradient(135deg,#d1fae5,#ecfdf5);border-color:#6ee7b7;}
+.setup-step{display:flex;gap:9px;align-items:flex-start;margin-bottom:8px;}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--yellow);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-num.done{background:var(--green);}
+.setup-step-txt{font-size:12px;line-height:1.5;color:var(--dim);}
+.setup-url-input{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:11px;font-family:monospace;margin-top:6px;color:var(--text);}
+.setup-url-input:focus{outline:none;border-color:var(--accent);}
 
 /* ── FORMS ── */
 .field{margin-bottom:10px;}
 .field label{font-size:11px;color:var(--dim);font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
-input[type=text],input[type=number],textarea,select{
-  width:100%;border:1.5px solid var(--border);border-radius:7px;
-  padding:8px 10px;font-size:13px;color:var(--text);
-  background:var(--surface);font-family:inherit;transition:border .15s,box-shadow .15s;
-}
-input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+input[type=text],input[type=number],textarea,select{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--text);background:var(--surface);font-family:inherit;transition:border .15s;}
+input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
 textarea{resize:vertical;min-height:52px;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 
 /* ── BUTTONS ── */
-.btn{
-  border:none;border-radius:8px;padding:9px 16px;
-  font-size:13px;font-weight:700;cursor:pointer;
-  transition:all .15s;display:inline-flex;align-items:center;gap:6px;
-  font-family:inherit;
-}
+.btn{border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit;}
 .btn:disabled{opacity:.5;cursor:not-allowed;}
 .btn-primary{background:var(--accent);color:#fff;}
-.btn-primary:hover:not(:disabled){background:#1d4ed8;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.btn-primary:hover:not(:disabled){background:#1d4ed8;}
 .btn-green{background:var(--green);color:#fff;}
 .btn-green:hover:not(:disabled){background:#047857;}
 .btn-outline{background:transparent;color:var(--dim);border:1.5px solid var(--border);}
-.btn-outline:hover:not(:disabled){background:var(--surface2);border-color:var(--border-strong);}
+.btn-outline:hover:not(:disabled){background:var(--surface2);}
 .btn-teal{background:var(--teal);color:#fff;}
-.btn-teal:hover:not(:disabled){background:#0e7490;}
-.btn-warn{background:#fef3c7;color:var(--yellow-dark);border:1px solid #fde68a;}
-.btn-warn:hover:not(:disabled){background:#fde68a;}
-.btn-danger{background:var(--red-dim);color:var(--red-dark);border:1px solid #fca5a5;}
 .btn-sm{padding:6px 11px;font-size:12px;}
 .btn-xs{padding:4px 9px;font-size:11px;border-radius:6px;}
 .btn-full{width:100%;justify-content:center;}
@@ -136,21 +83,17 @@ textarea{resize:vertical;min-height:52px;}
 .tabs{display:flex;gap:4px;background:var(--surface2);border-radius:10px;padding:4px;margin-bottom:18px;border:1px solid var(--border);}
 .tab{padding:8px 14px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;color:var(--dim);border:none;background:transparent;transition:all .15s;font-family:inherit;}
 .tab.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.08);}
-.tab:hover:not(.active){background:rgba(255,255,255,.7);}
 
 /* ── STATS ── */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
 @media(max-width:700px){.stats-row{grid-template-columns:repeat(2,1fr);}}
-.stat{
-  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:14px 16px;position:relative;overflow:hidden;
-}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;}
 .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);}
 .stat.green::before{background:var(--green);}
 .stat.blue::before{background:var(--accent);}
 .stat.yellow::before{background:var(--yellow);}
 .stat-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-.stat-value{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;}
+.stat-value{font-size:24px;font-weight:800;}
 .stat-sub{font-size:11px;color:var(--dim);margin-top:3px;}
 
 /* ── TABLE ── */
@@ -167,11 +110,10 @@ tr:hover td{background:#f8faff;}
 .badge-maybe{background:var(--yellow-dim);color:var(--yellow-dark);}
 .badge-no{background:var(--red-dim);color:var(--red-dark);}
 .badge-wait{background:var(--accent-dim);color:#1d4ed8;}
-.badge-crawl{background:var(--purple-dim);color:#6b21a8;}
-.badge-data{background:var(--teal-dim);color:#0e7490;}
+.badge-sheets{background:#e8f5e9;color:#1b5e20;}
 
 /* ── SCORES ── */
-.score-num{display:inline-flex;align-items:center;justify-content:center;width:44px;height:28px;border-radius:6px;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+.score-num{display:inline-flex;align-items:center;justify-content:center;width:44px;height:28px;border-radius:6px;font-size:14px;font-weight:800;}
 .score-go{background:var(--green-dim);color:var(--green-dark);}
 .score-maybe{background:var(--yellow-dim);color:var(--yellow-dark);}
 .score-no{background:var(--red-dim);color:var(--red-dark);}
@@ -185,63 +127,12 @@ tr:hover td{background:#f8faff;}
 .margin-bar-fill{height:100%;border-radius:3px;transition:width .4s ease;}
 .margin-val{font-weight:700;min-width:42px;text-align:right;}
 
-/* ── PLATFORM GRID ── */
-.platform-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.platform-cell{border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:var(--surface2);}
-.platform-name{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:4px;}
-.platform-val{font-size:13px;font-weight:700;}
-.platform-val.no-data{font-size:11px;color:var(--muted);font-weight:400;font-style:italic;}
-.platform-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-
-/* ── SOCIAL ── */
-.social-grid{display:flex;flex-direction:column;gap:5px;}
-.social-row{display:flex;align-items:center;gap:8px;font-size:12px;}
-.social-name{width:70px;flex-shrink:0;font-size:11px;color:var(--dim);font-weight:700;}
-.social-bar-bg{flex:1;height:5px;background:var(--border);border-radius:3px;}
-.social-bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .4s;}
-.social-val{font-size:11px;font-weight:700;min-width:26px;text-align:right;}
-
-/* ── SWOT ── */
-.swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.swot-s{background:var(--green-dim);color:var(--green-dark);border-radius:8px;padding:10px 12px;}
-.swot-w{background:var(--red-dim);color:var(--red-dark);border-radius:8px;padding:10px 12px;}
-.swot-o{background:var(--accent-dim);color:#1e40af;border-radius:8px;padding:10px 12px;}
-.swot-t{background:var(--yellow-dim);color:var(--yellow-dark);border-radius:8px;padding:10px 12px;}
-.swot-label{font-weight:800;font-size:12px;margin-bottom:6px;}
-.swot-list{list-style:none;padding:0;margin:0;}
-.swot-list li{font-size:11px;line-height:1.7;padding-left:12px;position:relative;}
-.swot-list li::before{content:'·';position:absolute;left:0;font-weight:700;}
-
-/* ── ACTION PLAN ── */
-.action-plan{display:flex;flex-direction:column;gap:8px;}
-.action-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);}
-.action-week{flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;margin-top:1px;white-space:nowrap;}
-.aw-1{background:var(--accent-dim);color:#1d4ed8;}
-.aw-2{background:var(--green-dim);color:var(--green-dark);}
-.aw-3{background:var(--yellow-dim);color:var(--yellow-dark);}
-.aw-c{background:var(--purple-dim);color:#6b21a8;}
-.action-title{font-size:13px;font-weight:700;margin-bottom:2px;}
-.action-desc{font-size:12px;color:var(--dim);line-height:1.6;}
-
-/* ── SOURCE LINKS ── */
-.source-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:7px;font-size:12px;margin-bottom:5px;border:1px solid var(--border);}
-.source-type{flex-shrink:0;background:var(--accent-dim);color:#1d4ed8;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;}
-.source-link{color:var(--accent);word-break:break-all;font-size:11px;}
-
-/* ── 可信度 ── */
-.credibility-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;}
-.cred-high{background:var(--green-dim);color:var(--green-dark);}
-.cred-mid{background:var(--yellow-dim);color:var(--yellow-dark);}
-.cred-low{background:var(--red-dim);color:var(--red-dark);}
-/* ⚠️ v12 新增：PTT 無資料狀態 */
-.cred-na{background:var(--surface3);color:var(--muted);border:1px dashed var(--border-strong);}
-
-/* ── KW TAGS ── */
-.kw-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
-.kw-tag{font-size:11px;padding:2px 8px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);}
-.kw-hot{background:#fff7ed;border-color:#fed7aa;color:#9a3412;}
-.kw-action{background:var(--green-dim);border-color:#6ee7b7;color:var(--green-dark);}
-.kw-neg{background:var(--red-dim);border-color:#fca5a5;color:var(--red-dark);}
+/* ── QUEUE ── */
+.queue-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;transition:border-color .2s;}
+.queue-item.crawling{border-color:var(--accent);background:var(--accent-dim);}
+.queue-item.done{border-color:var(--green);background:var(--green-dim);}
+.queue-item.error{border-color:var(--red);background:var(--red-dim);}
+.sheets-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#e8f5e9;color:#1b5e20;display:inline-flex;align-items:center;gap:3px;}
 
 /* ── MODAL ── */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
@@ -250,8 +141,7 @@ tr:hover td{background:#f8faff;}
 .modal-hdr{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;}
 .modal-body{padding:20px 22px;}
 .modal-ftr{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);}
-.close-btn{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;transition:color .15s;}
-.close-btn:hover{color:var(--text);}
+.close-btn{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;}
 .modal-section{margin-top:18px;padding-top:16px;border-top:1px solid var(--border);}
 .modal-section-title{font-size:12px;font-weight:800;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);}
 
@@ -263,113 +153,125 @@ tr:hover td{background:#f8faff;}
 
 .info-box{background:var(--accent-dim);border:1px solid #bfdbfe;border-radius:8px;padding:10px 13px;font-size:12px;color:#1e40af;line-height:1.7;margin-bottom:12px;}
 .warn-box{background:var(--yellow-dim);border:1px solid #fde68a;border-radius:8px;padding:10px 13px;font-size:12px;color:var(--yellow-dark);line-height:1.7;margin-bottom:12px;}
+.success-box{background:var(--green-dim);border:1px solid #6ee7b7;border-radius:8px;padding:10px 13px;font-size:12px;color:var(--green-dark);line-height:1.7;margin-bottom:12px;}
 .no-data-box{background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:10px 13px;font-size:12px;color:var(--muted);text-align:center;}
-/* ⚠️ v12 新增：資料不足標示盒 */
 .missing-data-box{background:var(--surface3);border:1.5px dashed var(--border-strong);border-radius:8px;padding:8px 13px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
 
-.empty{text-align:center;padding:40px 20px;color:var(--muted);}
-.loading-dot::after{content:'...';animation:dots 1.2s steps(4,end) infinite;}
-@keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+.swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.swot-s{background:var(--green-dim);color:var(--green-dark);border-radius:8px;padding:10px 12px;}
+.swot-w{background:var(--red-dim);color:var(--red-dark);border-radius:8px;padding:10px 12px;}
+.swot-o{background:var(--accent-dim);color:#1e40af;border-radius:8px;padding:10px 12px;}
+.swot-t{background:var(--yellow-dim);color:var(--yellow-dark);border-radius:8px;padding:10px 12px;}
+.swot-label{font-weight:800;font-size:12px;margin-bottom:6px;}
+.swot-list{list-style:none;padding:0;margin:0;}
+.swot-list li{font-size:11px;line-height:1.7;padding-left:12px;position:relative;}
+.swot-list li::before{content:'·';position:absolute;left:0;font-weight:700;}
 
-/* 待評估清單 */
-.queue-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;transition:border-color .2s;}
-.queue-item.crawling{border-color:var(--accent);background:var(--accent-dim);}
-.queue-item.done{border-color:var(--green);background:var(--green-dim);}
-.queue-item.error{border-color:var(--red);background:var(--red-dim);}
+.action-plan{display:flex;flex-direction:column;gap:8px;}
+.action-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);}
+.action-week{flex-shrink:0;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;margin-top:1px;white-space:nowrap;}
+.aw-1{background:var(--accent-dim);color:#1d4ed8;}
+.aw-2{background:var(--green-dim);color:var(--green-dark);}
+.aw-3{background:var(--yellow-dim);color:var(--yellow-dark);}
+.action-title{font-size:13px;font-weight:700;margin-bottom:2px;}
+.action-desc{font-size:12px;color:var(--dim);line-height:1.6;}
 
-/* v12 共享標籤 */
-.shared-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--teal-dim);color:var(--teal);display:inline-flex;align-items:center;gap:3px;}
+.source-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:7px;font-size:12px;margin-bottom:5px;border:1px solid var(--border);}
+.source-type{flex-shrink:0;background:var(--accent-dim);color:#1d4ed8;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;}
 
-/* 資料來源類型標籤顏色 — v12 新增 */
-.src-mcp{background:var(--green-dim);color:var(--green-dark);}
-.src-manual{background:var(--yellow-dim);color:var(--yellow-dark);}
-.src-missing{background:var(--surface3);color:var(--muted);}
-
-/* 通知 toast */
-.toast{
-  position:fixed;bottom:24px;right:24px;z-index:500;
-  background:var(--text);color:#fff;
-  padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;
-  display:flex;align-items:center;gap:8px;
-  box-shadow:0 8px 24px rgba(0,0,0,.2);
-  transform:translateY(20px);opacity:0;
-  transition:all .3s cubic-bezier(.34,1.56,.64,1);
-  pointer-events:none;
-}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;right:24px;z-index:500;background:var(--text);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(20px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.success{background:var(--green);}
 .toast.error{background:var(--red);}
 .toast.info{background:var(--accent);}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+
+/* ── SHEETS STATUS ── */
+.sheets-status{display:flex;flex-direction:column;gap:6px;font-size:12px;}
+.sheets-row{display:flex;justify-content:space-between;align-items:center;}
+.sheets-label{color:var(--dim);}
+.sheets-val{font-weight:700;}
+.api-url-display{font-size:10px;color:var(--muted);word-break:break-all;background:var(--surface3);padding:4px 8px;border-radius:5px;margin-top:4px;font-family:monospace;}
+
+/* ── GUIDE CODE ── */
+.code-block{background:#1e293b;color:#e2e8f0;border-radius:8px;padding:14px;font-family:monospace;font-size:11px;line-height:1.8;overflow-x:auto;margin-bottom:12px;}
+.code-c{color:#94a3b8;}
+.code-s{color:#f9a8d4;}
+.code-n{color:#6ee7b7;}
+.code-k{color:#fbbf24;}
 </style>
 </head>
 <body>
 
-<!-- ── TOPBAR ── -->
+<!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-brand">
-    <div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <h1>📊 LINE 選品評估系統</h1>
-        <span class="version-tag">v12</span>
-      </div>
-      <div class="topbar-meta">Chrome MCP 純實搜 · 共享儲存模式 · 資料不足直接說明 · 來源連結標註</div>
+  <div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <h1 class="topbar-brand">📊 LINE 選品評估系統</h1>
+      <span class="version-tag">v13</span>
     </div>
+    <div class="topbar-meta">Google Sheets 即時共享 · Chrome MCP 純實搜 · 多人同步</div>
   </div>
   <div class="topbar-right">
-    <!-- 共享狀態指示器 -->
-    <div class="sync-indicator" id="sync-btn" onclick="manualSync()" title="點擊立即同步">
+    <div class="sync-indicator" id="sync-btn" onclick="manualSync()">
       <div class="sync-dot" id="sync-dot"></div>
       <span id="sync-label">初始化中...</span>
     </div>
-    <button class="btn btn-outline btn-sm" onclick="showImportExport()">↕ 匯入/匯出</button>
+    <button class="btn btn-outline btn-sm" onclick="showGuide()">⚙️ 設定說明</button>
     <button class="btn btn-green btn-sm" onclick="exportExcel()">⬇ Excel</button>
     <button class="btn btn-outline btn-sm" style="color:var(--red);" onclick="clearAll()">🗑 清空</button>
   </div>
 </div>
 
-<!-- Toast 通知 -->
 <div class="toast" id="toast"></div>
 
-<!-- ── MAIN LAYOUT ── -->
 <div class="layout">
-
-<!-- ── SIDEBAR ── -->
+<!-- SIDEBAR -->
 <div class="sidebar">
 
-  <!-- 共享說明 -->
-  <div class="share-banner">
-    <strong>🔄 v12 共享儲存模式</strong>：爬蟲結果儲存後，<strong>任何人</strong>開啟此工具都能看到相同的真實數據。
-    <div class="how-steps">
-      <div class="share-step"><div class="step-num">1</div><div class="share-step-txt">加入商品 → 告訴 Claude 爬蟲</div></div>
-      <div class="share-step"><div class="step-num">2</div><div class="share-step-txt">Claude 完成後呼叫 <code style="background:#dbeafe;padding:1px 4px;border-radius:3px;">injectCrawlResult()</code> 注入</div></div>
-      <div class="share-step"><div class="step-num">3</div><div class="share-step-txt">資料自動儲存 → 其他人開啟即可看到結果 ✅</div></div>
+  <!-- Google Sheets 設定 -->
+  <div class="setup-banner" id="setup-banner">
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px;">⚙️ 第一次使用：設定 Google Sheets</div>
+    <div class="setup-step">
+      <div class="step-num" id="step1-num">1</div>
+      <div class="setup-step-txt">
+        依照「設定說明」建立 Google Apps Script，取得 API 網址
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num" id="step2-num">2</div>
+      <div class="setup-step-txt">
+        將 API 網址貼到下方，按「儲存連線」
+        <input type="text" class="setup-url-input" id="api-url-input"
+          placeholder="https://script.google.com/macros/s/xxxxx/exec">
+        <div style="margin-top:6px;display:flex;gap:6px;">
+          <button class="btn btn-primary btn-sm" onclick="saveApiUrl()" style="flex:1;justify-content:center;">儲存連線</button>
+          <button class="btn btn-outline btn-sm" onclick="testConnection()">測試</button>
+        </div>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num" id="step3-num">3</div>
+      <div class="setup-step-txt">連線成功後，所有人開啟網址即可即時共享 ✅</div>
     </div>
   </div>
 
-  <!-- 儲存狀態面板 -->
-  <div class="storage-panel">
-    <div class="card-title" style="margin-bottom:10px;">💾 儲存狀態</div>
-    <div class="storage-row">
-      <span class="storage-label">儲存方式</span>
-      <span class="storage-val" id="storage-mode">—</span>
-    </div>
-    <div class="storage-row">
-      <span class="storage-label">商品筆數</span>
-      <span class="storage-val" id="storage-count">0 筆</span>
-    </div>
-    <div class="storage-row">
-      <span class="storage-label">已完成爬蟲</span>
-      <span class="storage-val" id="storage-done">0 筆</span>
-    </div>
-    <div class="storage-row">
-      <span class="storage-label">最後更新</span>
-      <span class="storage-timestamp" id="storage-time">—</span>
+  <!-- Sheets 狀態 -->
+  <div class="card">
+    <div class="card-title">🔗 Google Sheets 狀態</div>
+    <div class="sheets-status">
+      <div class="sheets-row"><span class="sheets-label">連線狀態</span><span class="sheets-val" id="conn-status">—</span></div>
+      <div class="sheets-row"><span class="sheets-label">商品筆數</span><span class="sheets-val" id="conn-count">0 筆</span></div>
+      <div class="sheets-row"><span class="sheets-label">已完成爬蟲</span><span class="sheets-val" id="conn-done">0 筆</span></div>
+      <div class="sheets-row"><span class="sheets-label">最後同步</span><span class="sheets-val" id="conn-time" style="font-size:11px;">—</span></div>
+      <div id="api-url-display" class="api-url-display" style="display:none;"></div>
     </div>
     <div style="margin-top:10px;display:flex;gap:6px;">
       <button class="btn btn-outline btn-xs" onclick="manualSync()" style="flex:1;justify-content:center;">🔄 立即同步</button>
-      <button class="btn btn-outline btn-xs" onclick="loadFromStorage()" style="flex:1;justify-content:center;">📥 重新載入</button>
+      <button class="btn btn-outline btn-xs" onclick="loadFromSheets()" style="flex:1;justify-content:center;">📥 重新載入</button>
     </div>
   </div>
 
@@ -378,14 +280,14 @@ tr:hover td{background:#f8faff;}
     <div class="card-title">➕ 新增商品</div>
     <div class="field">
       <label>商品名稱 *</label>
-      <input type="text" id="inp-name" placeholder="例：St.Clare 水楊酸背痘噴霧 100ml">
+      <input type="text" id="inp-name" placeholder="例：St.Clare 水楊酸背痘噴霧">
     </div>
     <div class="field">
-      <label>品牌名稱（選填）</label>
+      <label>品牌名稱</label>
       <input type="text" id="inp-brand" placeholder="例：St.Clare 聖克萊爾">
     </div>
     <div class="field">
-      <label>商品連結（選填，給 Claude 爬蟲用）</label>
+      <label>商品連結（爬蟲用）</label>
       <input type="text" id="inp-url" placeholder="貼上官網或蝦皮連結">
     </div>
     <div class="field">
@@ -398,24 +300,24 @@ tr:hover td{background:#f8faff;}
         <input type="number" id="inp-cost" placeholder="0" min="0">
       </div>
       <div class="field">
-        <label>出貨運費（NT$/件）</label>
+        <label>出貨運費（NT$）</label>
         <input type="number" id="inp-logistic" placeholder="0" min="0">
       </div>
     </div>
     <div class="field">
-      <label>包材成本（NT$/件）</label>
+      <label>包材成本（NT$）</label>
       <input type="number" id="inp-packing" placeholder="0" min="0">
     </div>
     <div class="field">
-      <label>備註（商品特色、認證、特殊需求等）</label>
-      <textarea id="inp-note" placeholder="例：台灣製造、2%水楊酸、寶雅/屈臣氏通路、已取得授權書..."></textarea>
+      <label>備註</label>
+      <textarea id="inp-note" placeholder="認證、特殊需求、授權書狀態..."></textarea>
     </div>
-    <button class="btn btn-primary btn-full" onclick="addProduct()">＋ 加入待評估清單</button>
+    <button class="btn btn-primary btn-full" onclick="addProduct()">＋ 加入（同步至 Sheets）</button>
   </div>
 
   <!-- 待評估清單 -->
   <div class="card">
-    <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="card-title" style="display:flex;justify-content:space-between;">
       <span>📋 待評估清單</span>
       <span id="queue-count" style="font-size:11px;color:var(--muted);font-weight:400;">0 個</span>
     </div>
@@ -426,25 +328,25 @@ tr:hover td{background:#f8faff;}
 
 </div><!-- end sidebar -->
 
-<!-- ── MAIN CONTENT ── -->
+<!-- MAIN -->
 <div>
   <div class="tabs">
     <button class="tab active" onclick="switchTab('results',this)">📊 評估結果</button>
     <button class="tab" onclick="switchTab('cost',this)">💰 成本明細</button>
-    <button class="tab" onclick="switchTab('guide',this)">📖 說明 & API</button>
+    <button class="tab" onclick="switchTab('guide',this)">⚙️ 設定說明</button>
   </div>
 
   <!-- RESULTS TAB -->
   <div id="tab-results">
     <div id="stats-row" class="stats-row" style="display:none;">
       <div class="stat blue"><div class="stat-label">評估商品</div><div class="stat-value" id="st-total">0</div><div class="stat-sub">本批次</div></div>
-      <div class="stat green"><div class="stat-label">推進商品</div><div class="stat-value" id="st-go" style="color:var(--green);">0</div><div class="stat-sub">評分 ≥ 70</div></div>
+      <div class="stat green"><div class="stat-label">推進商品</div><div class="stat-value" id="st-go" style="color:var(--green);">0</div><div class="stat-sub">≥ 70 分</div></div>
       <div class="stat yellow"><div class="stat-label">平均毛利（含運）</div><div class="stat-value" id="st-m1">—</div><div class="stat-sub">目標 ≥ 30%</div></div>
       <div class="stat"><div class="stat-label">平均毛利（不含運）</div><div class="stat-value" id="st-m2">—</div><div class="stat-sub">目標 ≥ 35%</div></div>
     </div>
     <div class="card" style="padding:0;overflow:hidden;">
       <div class="tbl-wrap" id="results-wrap">
-        <div class="empty"><p>新增商品並完成爬蟲後自動顯示<br><small style="color:var(--muted);">資料儲存後其他使用者開啟也能看到</small></p></div>
+        <div class="empty"><p>新增商品並完成爬蟲後自動顯示<br><small style="color:var(--muted);">資料儲存至 Google Sheets，任何人開啟都能看到</small></p></div>
       </div>
     </div>
   </div>
@@ -453,7 +355,7 @@ tr:hover td{background:#f8faff;}
   <div id="tab-cost" style="display:none;">
     <div class="card">
       <div class="card-title">💰 成本 × 毛利 明細</div>
-      <div class="info-box">含運毛利 = (售價 − 進貨 − 出貨運費 − 包材) ÷ 售價 ｜ 不含運毛利 = (售價 − 進貨 − 包材) ÷ 售價<br>LINE 達標：<strong>含運 ≥ 30%</strong> 或 <strong>不含運 ≥ 35%</strong></div>
+      <div class="info-box">含運毛利 = (售價 − 進貨 − 運費 − 包材) ÷ 售價 ｜ LINE 達標：<strong>含運 ≥ 30%</strong> 或 <strong>不含運 ≥ 35%</strong></div>
       <div class="tbl-wrap" id="cost-wrap"><div class="empty"><p>新增商品後顯示</p></div></div>
     </div>
   </div>
@@ -461,80 +363,107 @@ tr:hover td{background:#f8faff;}
   <!-- GUIDE TAB -->
   <div id="tab-guide" style="display:none;">
     <div class="card" style="margin-bottom:14px;">
-      <div class="card-title">🔌 injectCrawlResult() API 說明</div>
-      <div class="info-box" style="margin-bottom:14px;">Claude 完成 Chrome MCP 爬蟲後，呼叫此函數注入結果。注入後資料<strong>自動儲存</strong>，其他人開啟工具即可看到。</div>
+      <div class="card-title">⚙️ Google Sheets 設定教學（一次設定，永久共享）</div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">⚠️ PTT / 平台無資料的正確寫法（v12 修正）</div>
-      <div style="background:#1e293b;color:#e2e8f0;border-radius:8px;padding:14px;font-family:monospace;font-size:11px;line-height:1.8;overflow-x:auto;margin-bottom:14px;">
-<span style="color:#94a3b8;">// ✅ 正確：找不到資料 → 明確標示 null，不給假評分</span><br>
-social: {<br>
-&nbsp;&nbsp;ptt: <span style="color:#fbbf24;">null</span>, <span style="color:#94a3b8;">// 無結果 → 不計分、顯示「⚠️ 無資料」</span><br>
-&nbsp;&nbsp;dcard: { score: <span style="color:#6ee7b7;">72</span>, notes: <span style="color:#f9a8d4;">"有多篇評比討論"</span>, sourceUrl: <span style="color:#f9a8d4;">"..."</span> }<br>
+      <div class="success-box">設定完成後，任何人開啟 GitHub Pages 網址，都能即時看到同一份資料。不需要 Python server，不需要任何安裝。</div>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 1：建立 Google Sheets</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.8;">
+        前往 <a href="https://sheets.google.com" target="_blank" style="color:var(--accent);">sheets.google.com</a>，建立一個新的空白試算表，命名為「LINE選品評估_v13」。記下試算表的網址（裡面有一串 ID 會用到）。
+      </p>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 2：建立 Google Apps Script</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:8px;line-height:1.8;">
+        在試算表點上方選單「擴充功能」→「Apps Script」，刪除原有內容，貼上以下程式碼：
+      </p>
+
+      <div class="code-block">
+<span class="code-c">// LINE 選品評估系統 v13 — Google Apps Script 後端</span><br>
+<span class="code-c">// 貼到 Apps Script 後，記得把下面的 SHEET_ID 換成你的試算表 ID</span><br><br>
+<span class="code-k">const</span> SHEET_ID = <span class="code-s">'你的試算表ID'</span>; <span class="code-c">// ← 換這裡</span><br>
+<span class="code-k">const</span> SHEET_NAME = <span class="code-s">'products'</span>;<br><br>
+<span class="code-k">function</span> <span class="code-n">doGet</span>(e) {<br>
+&nbsp;&nbsp;<span class="code-k">const</span> action = e.parameter.action;<br>
+&nbsp;&nbsp;<span class="code-k">if</span> (action === <span class="code-s">'read'</span>) <span class="code-k">return</span> readProducts();<br>
+&nbsp;&nbsp;<span class="code-k">if</span> (action === <span class="code-s">'ping'</span>) <span class="code-k">return</span> ok({status:<span class="code-s">'ok'</span>,msg:<span class="code-s">'LINE選品v13連線成功'</span>});<br>
+&nbsp;&nbsp;<span class="code-k">return</span> ok({error:<span class="code-s">'unknown action'</span>});<br>
 }<br><br>
-<span style="color:#94a3b8;">// ❌ 錯誤（v11 bug）：無資料卻給 ★★★★★</span><br>
-ptt: { score: <span style="color:#f87171;">100</span>, notes: <span style="color:#f87171;">"搜尋結果為零"</span> } <span style="color:#94a3b8;">// 不可這樣寫</span>
+<span class="code-k">function</span> <span class="code-n">doPost</span>(e) {<br>
+&nbsp;&nbsp;<span class="code-k">const</span> data = JSON.parse(e.postData.contents);<br>
+&nbsp;&nbsp;<span class="code-k">if</span> (data.action === <span class="code-s">'write'</span>) <span class="code-k">return</span> writeProducts(data.products);<br>
+&nbsp;&nbsp;<span class="code-k">return</span> ok({error:<span class="code-s">'unknown'</span>});<br>
+}<br><br>
+<span class="code-k">function</span> <span class="code-n">readProducts</span>() {<br>
+&nbsp;&nbsp;<span class="code-k">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">const</span> ss = SpreadsheetApp.openById(SHEET_ID);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">let</span> sheet = ss.getSheetByName(SHEET_NAME);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">if</span> (!sheet) <span class="code-k">return</span> ok({products:[], nextId:<span class="code-n">1</span>});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">const</span> data = sheet.getRange(<span class="code-s">'A1'</span>).getValue();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">if</span> (!data) <span class="code-k">return</span> ok({products:[], nextId:<span class="code-n">1</span>});<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">return</span> ok(JSON.parse(data));<br>
+&nbsp;&nbsp;} <span class="code-k">catch</span>(err) { <span class="code-k">return</span> ok({error:err.toString()}); }<br>
+}<br><br>
+<span class="code-k">function</span> <span class="code-n">writeProducts</span>(payload) {<br>
+&nbsp;&nbsp;<span class="code-k">try</span> {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">const</span> ss = SpreadsheetApp.openById(SHEET_ID);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">let</span> sheet = ss.getSheetByName(SHEET_NAME);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">if</span> (!sheet) sheet = ss.insertSheet(SHEET_NAME);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;sheet.getRange(<span class="code-s">'A1'</span>).setValue(JSON.stringify(payload));<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-k">return</span> ok({status:<span class="code-s">'saved'</span>, count: payload.products?.length || <span class="code-n">0</span>});<br>
+&nbsp;&nbsp;} <span class="code-k">catch</span>(err) { <span class="code-k">return</span> ok({error:err.toString()}); }<br>
+}<br><br>
+<span class="code-k">function</span> <span class="code-n">ok</span>(data) {<br>
+&nbsp;&nbsp;<span class="code-k">return</span> ContentService<br>
+&nbsp;&nbsp;&nbsp;&nbsp;.createTextOutput(JSON.stringify(data))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;.setMimeType(ContentService.MimeType.JSON);<br>
+}
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">完整注入範例</div>
-      <div style="background:#1e293b;color:#e2e8f0;border-radius:8px;padding:14px;font-family:monospace;font-size:11px;line-height:1.8;overflow-x:auto;">
-injectCrawlResult(<span style="color:#6ee7b7;">1</span>, {<br>
-&nbsp;&nbsp;scores: {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;market: <span style="color:#6ee7b7;">7</span>, demand: <span style="color:#6ee7b7;">7</span>, competition: <span style="color:#6ee7b7;">6</span>, diff: <span style="color:#6ee7b7;">6</span>, complexity: <span style="color:#6ee7b7;">8</span>,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;explanation: { market: <span style="color:#f9a8d4;">"夏季需求明顯..."</span>, ... }<br>
-&nbsp;&nbsp;},<br>
-&nbsp;&nbsp;keywords: {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;main: [<span style="color:#f9a8d4;">"背痘噴霧"</span>, <span style="color:#f9a8d4;">"水楊酸"</span>],<br>
-&nbsp;&nbsp;&nbsp;&nbsp;longtail: [<span style="color:#f9a8d4;">"2%水楊酸背痘"</span>],<br>
-&nbsp;&nbsp;&nbsp;&nbsp;trendScore: <span style="color:#6ee7b7;">38</span>, trend: <span style="color:#f9a8d4;">"急升"</span>, trendClass: <span style="color:#f9a8d4;">"trend-up"</span>,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;trendSourceUrl: <span style="color:#f9a8d4;">"https://trends.google.com/..."</span>,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;trendReason: <span style="color:#f9a8d4;">"夏季前背痘話題快速升溫"</span><br>
-&nbsp;&nbsp;},<br>
-&nbsp;&nbsp;platforms: {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;shopee: { count: <span style="color:#f9a8d4;">"15件"</span>, sales: <span style="color:#f9a8d4;">"官方3000+"</span>, priceRange: <span style="color:#f9a8d4;">"NT$350-580"</span>, sourceUrl: <span style="color:#f9a8d4;">"..."</span> },<br>
-&nbsp;&nbsp;&nbsp;&nbsp;momo:   { count: <span style="color:#f9a8d4;">"11件"</span>, status: <span style="color:#f9a8d4;">"全為St.Clare"</span>, sourceUrl: <span style="color:#f9a8d4;">"..."</span> },<br>
-&nbsp;&nbsp;&nbsp;&nbsp;pchome: { count: <span style="color:#fbbf24;">null</span>, status: <span style="color:#f9a8d4;">"未爬取"</span> }, <span style="color:#94a3b8;">// 明確標示未爬</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;overallCompetition: <span style="color:#f9a8d4;">"低"</span>, marketOpportunity: <span style="color:#f9a8d4;">"精確詞競品少，進場時機佳"</span><br>
-&nbsp;&nbsp;},<br>
-&nbsp;&nbsp;social: {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;ptt:   <span style="color:#fbbf24;">null</span>, <span style="color:#94a3b8;">// 無搜尋結果 → null，工具顯示「⚠️ 無資料，不計分」</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;dcard: { score: <span style="color:#6ee7b7;">72</span>, notes: <span style="color:#f9a8d4;">"KOL合作文、5款評比排第5"</span>, sourceUrl: <span style="color:#f9a8d4;">"..."</span> },<br>
-&nbsp;&nbsp;&nbsp;&nbsp;tiktok: <span style="color:#fbbf24;">null</span>, <span style="color:#94a3b8;">// 未成功爬取 → null</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;dataNote: <span style="color:#f9a8d4;">"小紅書/TikTok未成功爬取，不計入評分"</span><br>
-&nbsp;&nbsp;},<br>
-&nbsp;&nbsp;brand: { brandName: <span style="color:#f9a8d4;">"St.Clare 聖克萊爾"</span>, marketPosition: <span style="color:#f9a8d4;">"中端"</span>, ... },<br>
-&nbsp;&nbsp;swot: { s:[<span style="color:#f9a8d4;">"台灣授權品牌"</span>], w:[<span style="color:#f9a8d4;">"評比排第5"</span>], o:[<span style="color:#f9a8d4;">"夏季需求上升"</span>], t:[<span style="color:#f9a8d4;">"妍霓絲月銷萬件"</span>] },<br>
-&nbsp;&nbsp;actions: [{ week:<span style="color:#f9a8d4;">"第1週"</span>, priority:<span style="color:#f9a8d4;">"高"</span>, title:<span style="color:#f9a8d4;">"確認授權書"</span>, desc:<span style="color:#f9a8d4;">"..."</span> }],<br>
-&nbsp;&nbsp;sources: [{ type:<span style="color:#f9a8d4;">"蝦皮"</span>, dataPoints:<span style="color:#f9a8d4;">"競品15件"</span>, url:<span style="color:#f9a8d4;">"..."</span>, retrievedAt:<span style="color:#f9a8d4;">"2026-04-22"</span> }],<br>
-&nbsp;&nbsp;dataIntegrity: {<br>
-&nbsp;&nbsp;&nbsp;&nbsp;credibilityScore: <span style="color:#6ee7b7;">75</span>,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;missingData: [<span style="color:#f9a8d4;">"小紅書"</span>, <span style="color:#f9a8d4;">"TikTok"</span>, <span style="color:#f9a8d4;">"PChome"</span>],<br>
-&nbsp;&nbsp;&nbsp;&nbsp;contradictions: <span style="color:#f9a8d4;">"無"</span>,<br>
-&nbsp;&nbsp;&nbsp;&nbsp;searchDate: <span style="color:#f9a8d4;">"2026-04-22"</span><br>
-&nbsp;&nbsp;}<br>
-});
-      </div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 3：取得試算表 ID</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:12px;line-height:1.8;">
+        試算表網址長這樣：<br>
+        <code style="background:var(--surface3);padding:2px 6px;border-radius:4px;font-size:11px;">https://docs.google.com/spreadsheets/d/<strong style="color:var(--red);">這串就是ID</strong>/edit</code><br>
+        把紅色那串複製，貼到 Apps Script 程式碼第一行的 <code>SHEET_ID</code>。
+      </p>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 4：部署為 Web App</div>
+      <p style="font-size:12px;color:var(--dim);margin-bottom:8px;line-height:1.8;">
+        Apps Script 右上角點「部署」→「新增部署作業」→ 類型選「網頁應用程式」<br>
+        設定：<strong>以我的身份執行</strong>，存取權限選「<strong>所有人</strong>」<br>
+        點「部署」→「授予存取權」→ 複製「網頁應用程式網址」
+      </p>
+
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;">Step 5：貼回工具</div>
+      <p style="font-size:12px;color:var(--dim);line-height:1.8;">
+        回到工具左側「設定」欄，把網址貼入，按「儲存連線」→「測試」，看到「✅ 連線成功」就完成了。
+      </p>
     </div>
 
     <div class="card">
-      <div class="card-title">📖 評分維度說明</div>
-      <div class="info-box" style="margin-bottom:14px;">所有分數 1–10，最終加權得 0–100 分<br>70+ 推進 ／ 50–69 條件評估 ／ 49 以下不採用</div>
-      <table style="width:100%;font-size:12px;">
-        <tr style="background:var(--surface2);"><th style="padding:6px 10px;">維度（佔分）</th><th style="padding:6px 10px;">資料來源</th><th style="padding:6px 10px;">無資料時處理</th></tr>
-        <tr><td style="padding:7px 10px;font-weight:600;">市場規模（×20）</td><td style="padding:7px 10px;color:var(--dim);">Google Trends + 各平台銷量</td><td style="padding:7px 10px;color:var(--muted);">標示無資料，分數保守估 5</td></tr>
-        <tr style="background:var(--surface2);"><td style="padding:7px 10px;font-weight:600;">需求強度（×20）</td><td style="padding:7px 10px;color:var(--dim);">重複購買率、社群討論趨勢</td><td style="padding:7px 10px;color:var(--muted);">同上</td></tr>
-        <tr><td style="padding:7px 10px;font-weight:600;">競爭密度（×20）</td><td style="padding:7px 10px;color:var(--dim);">各平台競品件數（越少=越高分）</td><td style="padding:7px 10px;color:var(--muted);">同上</td></tr>
-        <tr style="background:var(--surface2);"><td style="padding:7px 10px;font-weight:600;">差異化空間（×20）</td><td style="padding:7px 10px;color:var(--dim);">認證/品牌/功能唯一性</td><td style="padding:7px 10px;color:var(--muted);">同上</td></tr>
-        <tr><td style="padding:7px 10px;font-weight:600;">作業複雜度（×10）</td><td style="padding:7px 10px;color:var(--dim);">物流/冷鏈/法規需求</td><td style="padding:7px 10px;color:var(--muted);">依商品特性填入</td></tr>
-        <tr style="background:var(--surface2);"><td style="padding:7px 10px;font-weight:600;">毛利可行性（+10）</td><td style="padding:7px 10px;color:var(--dim);">依填入成本自動計算</td><td style="padding:7px 10px;color:var(--muted);">未填成本 = 0 分</td></tr>
-        <tr><td style="padding:7px 10px;font-weight:600;color:var(--red);">PTT 無結果</td><td style="padding:7px 10px;color:var(--dim);">—</td><td style="padding:7px 10px;color:var(--red);font-weight:600;">⚠️ 標示無資料，不計入評分（v12 修正）</td></tr>
-      </table>
+      <div class="card-title">🔌 injectCrawlResult() API（Claude 爬蟲注入用）</div>
+      <div class="info-box">Claude 完成 Chrome MCP 爬蟲後呼叫此函數，結果自動同步至 Google Sheets，所有人立即可見。</div>
+      <div class="code-block">
+injectCrawlResult(<span class="code-n">1</span>, {<br>
+&nbsp;&nbsp;scores: { market:<span class="code-n">7</span>, demand:<span class="code-n">7</span>, competition:<span class="code-n">6</span>, diff:<span class="code-n">6</span>, complexity:<span class="code-n">8</span>,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;explanation: { market:<span class="code-s">"說明..."</span> } },<br>
+&nbsp;&nbsp;keywords: { main:[<span class="code-s">"關鍵字"</span>], trendScore:<span class="code-n">38</span>, trend:<span class="code-s">"急升"</span> },<br>
+&nbsp;&nbsp;platforms: { shopee:{count:<span class="code-s">"15件"</span>, sourceUrl:<span class="code-s">"..."</span>},<br>
+&nbsp;&nbsp;&nbsp;&nbsp;ptt: <span class="code-k">null</span> }, <span class="code-c">// null = 無資料，不計分</span><br>
+&nbsp;&nbsp;social: { ptt:<span class="code-k">null</span>, dcard:{score:<span class="code-n">72</span>, notes:<span class="code-s">"..."</span>} },<br>
+&nbsp;&nbsp;swot: { s:[<span class="code-s">"優勢"</span>], w:[<span class="code-s">"劣勢"</span>], o:[<span class="code-s">"機會"</span>], t:[<span class="code-s">"威脅"</span>] },<br>
+&nbsp;&nbsp;actions: [{week:<span class="code-s">"第1週"</span>, priority:<span class="code-s">"高"</span>, title:<span class="code-s">"行動"</span>, desc:<span class="code-s">"說明"</span>}],<br>
+&nbsp;&nbsp;sources: [{type:<span class="code-s">"Chrome MCP"</span>, dataPoints:<span class="code-s">"資料點"</span>, url:<span class="code-s">"..."</span>, retrievedAt:<span class="code-s">"2026-04-27"</span>}],<br>
+&nbsp;&nbsp;dataIntegrity: { credibilityScore:<span class="code-n">75</span>, missingData:[<span class="code-s">"PChome"</span>],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;contradictions:<span class="code-s">"無"</span>, searchDate:<span class="code-s">"2026-04-27"</span> }<br>
+});
+      </div>
     </div>
   </div>
 
 </div><!-- end main -->
 </div><!-- end layout -->
 
-<!-- ── DETAIL MODAL ── -->
+<!-- DETAIL MODAL -->
 <div class="overlay" id="detail-modal">
   <div class="modal">
     <div class="modal-hdr">
@@ -551,232 +480,211 @@ injectCrawlResult(<span style="color:#6ee7b7;">1</span>, {<br>
   </div>
 </div>
 
-<!-- ── IMPORT/EXPORT MODAL ── -->
-<div class="overlay" id="ie-modal">
-  <div class="modal" style="max-width:540px;">
+<!-- GUIDE MODAL -->
+<div class="overlay" id="guide-modal">
+  <div class="modal" style="max-width:500px;">
     <div class="modal-hdr">
-      <div style="font-size:15px;font-weight:800;">↕ 資料匯入 / 匯出</div>
-      <button class="close-btn" onclick="document.getElementById('ie-modal').classList.remove('open')">✕</button>
+      <div style="font-size:15px;font-weight:800;">⚙️ 快速設定指引</div>
+      <button class="close-btn" onclick="document.getElementById('guide-modal').classList.remove('open')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="info-box" style="margin-bottom:16px;">匯出後可將 JSON 分享給其他人，對方貼上後即可還原所有爬蟲資料。</div>
-      <div style="margin-bottom:14px;">
-        <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">📤 匯出（複製 JSON）</div>
-        <textarea id="export-area" style="height:120px;font-size:11px;font-family:monospace;background:#f8faff;" readonly placeholder="點擊下方按鈕生成..."></textarea>
-        <button class="btn btn-outline btn-sm" style="margin-top:6px;" onclick="doExportJSON()">生成 JSON</button>
-        <button class="btn btn-teal btn-sm" style="margin-top:6px;" onclick="copyExport()">複製 JSON</button>
-      </div>
-      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">📥 匯入（貼上 JSON）</div>
-        <textarea id="import-area" style="height:120px;font-size:11px;font-family:monospace;" placeholder="貼上從他人匯出的 JSON 資料..."></textarea>
-        <div style="margin-top:8px;display:flex;gap:8px;">
-          <button class="btn btn-primary btn-sm" onclick="doImportJSON()">匯入並合併</button>
-          <button class="btn btn-warn btn-sm" onclick="doImportJSONReplace()">匯入並取代全部</button>
-        </div>
-      </div>
+      <div class="info-box">請切換到「設定說明」頁籤，依照步驟完成 Google Apps Script 設定。</div>
+      <button class="btn btn-primary btn-full" onclick="switchTab('guide', document.querySelectorAll('.tab')[2]); document.getElementById('guide-modal').classList.remove('open');">前往設定說明 →</button>
     </div>
   </div>
 </div>
 
 <script>
 // ══════════════════════════════════════════════════════════
-// ★ v12 核心：STORAGE 層
-// 優先使用 window.storage（Artifact Storage，跨裝置共享）
-// 降級使用 localStorage（單機本地）
+// ★ v13 核心：Google Sheets API 層
 // ══════════════════════════════════════════════════════════
-const STORAGE_KEY = 'line_selection_v12_products';
-const STORAGE_META = 'line_selection_v12_meta';
-let storageMode = 'unknown'; // 'shared' | 'local' | 'memory'
-
-async function storageSet(key, value) {
-  const json = JSON.stringify(value);
-  try {
-    if (window.storage) {
-      const r = await window.storage.set(key, json, true); // shared=true → 任何人可見
-      if (r) { storageMode = 'shared'; return true; }
-    }
-  } catch(e) {}
-  try {
-    localStorage.setItem(key, json);
-    storageMode = 'local';
-    return true;
-  } catch(e) {}
-  storageMode = 'memory';
-  return false;
-}
-
-async function storageGet(key) {
-  try {
-    if (window.storage) {
-      const r = await window.storage.get(key, true); // shared=true
-      if (r) return JSON.parse(r.value);
-    }
-  } catch(e) {}
-  try {
-    const v = localStorage.getItem(key);
-    if (v) return JSON.parse(v);
-  } catch(e) {}
-  return null;
-}
-
-// ══════════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════════
+const LS_API_KEY = 'line_v13_api_url';
+const HARDCODED_API = 'https://script.google.com/macros/s/AKfycbwd7XJcnWZEcOmy_F2_2DaZAQb1eXMfEd8AR00F-K7E2_9jDour3TBXQJuix14bkTCrMA/exec';
+const LS_DATA_KEY = 'line_v13_data';
+let API_URL = '';
 let products = [];
 let nextId = 1;
-let lastSaveTime = null;
+let lastSyncTime = null;
 let syncTimer = null;
+let isConnected = false;
 
-// ══════════════════════════════════════════════════════════
-// TOAST 通知
-// ══════════════════════════════════════════════════════════
-function showToast(msg, type='info', duration=2800) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast ${type} show`;
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => { el.classList.remove('show'); }, duration);
+// ── API URL 管理 ──
+function loadApiUrl() {
+  // 優先用 hardcoded API（已設定好），其次用 localStorage
+  const saved = localStorage.getItem(LS_API_KEY) || HARDCODED_API || '';
+  API_URL = saved || HARDCODED_API;
+  if (API_URL) {
+    localStorage.setItem(LS_API_KEY, API_URL);
+    document.getElementById('api-url-input').value = API_URL;
+    document.getElementById('api-url-display').textContent = API_URL;
+    document.getElementById('api-url-display').style.display = 'block';
+  }
+  return API_URL;
 }
 
-// ══════════════════════════════════════════════════════════
-// SYNC 狀態 UI
-// ══════════════════════════════════════════════════════════
-function setSyncState(state, label) {
-  const dot = document.getElementById('sync-dot');
-  const lbl = document.getElementById('sync-label');
-  dot.className = 'sync-dot ' + state;
-  lbl.textContent = label;
+function saveApiUrl() {
+  const url = document.getElementById('api-url-input').value.trim();
+  if (!url || !url.startsWith('https://script.google.com')) {
+    showToast('請輸入正確的 Apps Script 網址', 'error'); return;
+  }
+  API_URL = url;
+  localStorage.setItem(LS_API_KEY, url);
+  document.getElementById('api-url-display').textContent = url;
+  document.getElementById('api-url-display').style.display = 'block';
+  showToast('✅ 已儲存 API 網址，正在測試連線...', 'success');
+  testConnection();
 }
 
-function updateStoragePanel() {
-  const done = products.filter(p => p.status === 'done').length;
-  const modeLabels = { shared:'☁️ 共享儲存（所有人可見）', local:'💾 本機儲存', memory:'⚡ 記憶體（重開失效）', unknown:'初始化中...' };
-  document.getElementById('storage-mode').textContent = modeLabels[storageMode] || storageMode;
-  document.getElementById('storage-count').textContent = products.length + ' 筆';
-  document.getElementById('storage-done').textContent = done + ' 筆';
-  document.getElementById('storage-time').textContent = lastSaveTime
-    ? '最後儲存：' + lastSaveTime
-    : '尚未儲存';
-  document.getElementById('queue-count').textContent = products.length + ' 個';
-}
-
-// ══════════════════════════════════════════════════════════
-// SAVE & LOAD
-// ══════════════════════════════════════════════════════════
-async function saveToStorage() {
-  setSyncState('syncing', '儲存中...');
-  const meta = { nextId, savedAt: new Date().toISOString(), count: products.length };
-  const ok1 = await storageSet(STORAGE_KEY, products);
-  const ok2 = await storageSet(STORAGE_META, meta);
-  lastSaveTime = new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-
-  if (ok1 && ok2) {
-    setSyncState('synced', storageMode === 'shared' ? '☁️ 已共享' : '💾 已本機儲存');
-    updateStoragePanel();
-  } else {
-    setSyncState('error', '⚠️ 儲存失敗');
-    showToast('⚠️ 儲存失敗，資料僅在本次 session 有效', 'error');
+// ── 連線測試 ──
+async function testConnection() {
+  if (!API_URL) { showToast('請先儲存 API 網址', 'error'); return; }
+  setSyncState('syncing', '測試連線...');
+  try {
+    const res = await fetch(`${API_URL}?action=ping`);
+    const data = await res.json();
+    if (data.status === 'ok') {
+      isConnected = true;
+      setSyncState('synced', '✅ Google Sheets 已連線');
+      setConnStatus('✅ 已連線', 'var(--green)');
+      updateSetupBanner(true);
+      showToast('✅ ' + data.msg, 'success');
+      await loadFromSheets();
+    } else {
+      throw new Error(data.error || '連線失敗');
+    }
+  } catch(e) {
+    isConnected = false;
+    setSyncState('error', '❌ 連線失敗');
+    setConnStatus('❌ 未連線', 'var(--red)');
+    showToast('連線失敗：' + e.message + '｜請確認 Apps Script 已部署且存取權限為「所有人」', 'error', 6000);
   }
 }
 
-async function loadFromStorage() {
-  setSyncState('syncing', '載入中...');
+// ── 從 Sheets 載入 ──
+async function loadFromSheets() {
+  if (!API_URL) { loadFromLocal(); return; }
+  setSyncState('syncing', '從 Sheets 載入...');
   try {
-    const [data, meta] = await Promise.all([
-      storageGet(STORAGE_KEY),
-      storageGet(STORAGE_META)
-    ]);
-    if (data && Array.isArray(data) && data.length > 0) {
-      products = data;
-      nextId = meta?.nextId || (Math.max(...data.map(p => p.id || 0)) + 1);
-      lastSaveTime = meta?.savedAt
-        ? new Date(meta.savedAt).toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' })
-        : null;
-
-      // 修正舊資料的 PTT 評分邏輯 bug（v11 → v12 遷移）
-      products.forEach(p => {
-        if (p.crawlData?.social?.ptt && p.crawlData.social.ptt.score === 100 && p.crawlData.social.ptt.notes?.includes('無搜尋結果')) {
-          p.crawlData.social.ptt = null; // 修正為正確的無資料狀態
-        }
-        // 補回毛利計算（確保舊資料仍正確）
-        computeMargin(p);
-      });
-
-      renderQueue(); renderAll();
-      setSyncState('synced', storageMode === 'shared' ? '☁️ 已共享' : '💾 本機資料');
-      showToast(`✅ 載入 ${data.length} 筆商品資料`, 'success');
+    const res = await fetch(`${API_URL}?action=read&t=${Date.now()}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (data.products && Array.isArray(data.products) && data.products.length > 0) {
+      products = data.products;
+      nextId = data.nextId || (Math.max(...data.products.map(p => p.id || 0)) + 1);
+      products.forEach(p => computeMargin(p));
+      // 同步快取到 localStorage
+      localStorage.setItem(LS_DATA_KEY, JSON.stringify({ products, nextId }));
+      lastSyncTime = new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      isConnected = true;
+      setSyncState('synced', '☁️ Sheets 已同步');
+      showToast(`✅ 從 Sheets 載入 ${products.length} 筆`, 'success');
     } else {
-      setSyncState('synced', storageMode === 'shared' ? '☁️ 共享（空）' : '💾 本機（空）');
+      setSyncState('synced', '☁️ Sheets（空）');
     }
-    updateStoragePanel();
   } catch(e) {
-    setSyncState('error', '載入失敗');
-    showToast('載入失敗：' + e.message, 'error');
+    setSyncState('error', '⚠️ 載入失敗，用本機資料');
+    loadFromLocal();
+    showToast('Sheets 載入失敗，改用本機快取：' + e.message, 'error', 5000);
+  }
+  renderQueue(); renderAll();
+  updateStatusPanel();
+}
+
+// ── 本機快取降級 ──
+function loadFromLocal() {
+  try {
+    const raw = localStorage.getItem(LS_DATA_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      products = data.products || [];
+      nextId = data.nextId || 1;
+      products.forEach(p => computeMargin(p));
+    }
+  } catch(e) {}
+}
+
+// ── 儲存到 Sheets ──
+async function saveToSheets() {
+  const payload = { products, nextId, savedAt: new Date().toISOString() };
+  // 先存本機快取
+  localStorage.setItem(LS_DATA_KEY, JSON.stringify(payload));
+  if (!API_URL) { setSyncState('synced', '💾 本機（未設定 Sheets）'); updateStatusPanel(); return; }
+  setSyncState('syncing', '儲存中...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'write', products: payload })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    lastSyncTime = new Date().toLocaleTimeString('zh-TW', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    isConnected = true;
+    setSyncState('synced', '☁️ 已同步至 Sheets');
+    updateStatusPanel();
+  } catch(e) {
+    setSyncState('error', '⚠️ 同步失敗（已存本機）');
+    showToast('Sheets 同步失敗，資料已存本機：' + e.message, 'error', 5000);
   }
 }
 
 async function manualSync() {
-  await saveToStorage();
-  showToast('✅ 同步完成，其他人重新載入即可看到最新資料', 'success');
+  await loadFromSheets();
+  showToast('🔄 已從 Sheets 同步最新資料', 'success');
 }
 
-// 自動儲存（3秒防抖）
 function scheduleAutoSave() {
   clearTimeout(syncTimer);
   setSyncState('syncing', '待儲存...');
-  syncTimer = setTimeout(async () => {
-    await saveToStorage();
-  }, 3000);
+  syncTimer = setTimeout(async () => { await saveToSheets(); }, 2000);
 }
 
 // ══════════════════════════════════════════════════════════
-// HELPERS
+// UI HELPERS
+// ══════════════════════════════════════════════════════════
+function showToast(msg, type='info', duration=3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), duration);
+}
+function setSyncState(state, label) {
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-label').textContent = label;
+}
+function setConnStatus(txt, color) {
+  const el = document.getElementById('conn-status');
+  el.textContent = txt;
+  el.style.color = color;
+}
+function updateStatusPanel() {
+  const done = products.filter(p => p.status === 'done').length;
+  document.getElementById('conn-count').textContent = products.length + ' 筆';
+  document.getElementById('conn-done').textContent = done + ' 筆';
+  document.getElementById('conn-time').textContent = lastSyncTime ? lastSyncTime : '—';
+  document.getElementById('queue-count').textContent = products.length + ' 個';
+}
+function updateSetupBanner(connected) {
+  const banner = document.getElementById('setup-banner');
+  if (connected) {
+    banner.classList.add('connected');
+    ['step1-num','step2-num','step3-num'].forEach(id => {
+      document.getElementById(id).classList.add('done');
+      document.getElementById(id).textContent = '✓';
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// PRODUCT LOGIC
 // ══════════════════════════════════════════════════════════
 function safeFixed(n, d=1) { return (n != null && !isNaN(n)) ? Number(n).toFixed(d) : '—'; }
 function mc(n) { return n >= 30 ? 'var(--green)' : n >= 15 ? 'var(--yellow)' : 'var(--red)'; }
 function verdict(s) {
   if (s == null) return { label:'待爬蟲', cls:'wait' };
-  if (s >= 70)  return { label:'推進', cls:'go' };
-  if (s >= 50)  return { label:'條件評估', cls:'maybe' };
+  if (s >= 70) return { label:'推進', cls:'go' };
+  if (s >= 50) return { label:'條件評估', cls:'maybe' };
   return { label:'不採用', cls:'no' };
-}
-
-// ══════════════════════════════════════════════════════════
-// 新增商品
-// ══════════════════════════════════════════════════════════
-function addProduct() {
-  const name     = document.getElementById('inp-name').value.trim();
-  const brand    = document.getElementById('inp-brand').value.trim();
-  const url      = document.getElementById('inp-url').value.trim();
-  const price    = parseFloat(document.getElementById('inp-price').value) || 0;
-  const cost     = parseFloat(document.getElementById('inp-cost').value) || 0;
-  const logistic = parseFloat(document.getElementById('inp-logistic').value) || 0;
-  const packing  = parseFloat(document.getElementById('inp-packing').value) || 0;
-  const note     = document.getElementById('inp-note').value.trim();
-
-  if (!name)  { showToast('請輸入商品名稱', 'error'); return; }
-  if (!price) { showToast('請輸入售價', 'error'); return; }
-
-  const p = {
-    id: nextId++, name, brand, url, price, cost, logistic, packing, note,
-    status: 'waiting',
-    crawlData: null, totalScore: null,
-    marginWith: null, marginWithout: null, marginScore: 0,
-    scores: { market:0, demand:0, competition:0, diff:0, complexity:0 },
-    scoreExplanations: {}, swot: null, actions: []
-  };
-  computeMargin(p);
-  products.push(p);
-  clearInputs();
-  renderQueue(); renderAll();
-  scheduleAutoSave();
-  showToast(`✅ "${name}" 已加入清單`, 'success');
-}
-
-function clearInputs() {
-  ['inp-name','inp-brand','inp-url','inp-price','inp-cost','inp-logistic','inp-packing','inp-note']
-    .forEach(id => { document.getElementById(id).value = ''; });
 }
 
 function computeMargin(p) {
@@ -786,29 +694,47 @@ function computeMargin(p) {
   }
   const mVal = p.cost > 0 ? Math.min(p.marginWith ?? 0, p.marginWithout ?? 0) : null;
   if (mVal != null) {
-    if (mVal >= 40) p.marginScore = 10;
-    else if (mVal >= 30) p.marginScore = 8;
-    else if (mVal >= 20) p.marginScore = 5;
-    else if (mVal >= 10) p.marginScore = 3;
-    else p.marginScore = 1;
-  } else {
-    p.marginScore = 0;
-  }
+    p.marginScore = mVal >= 40 ? 10 : mVal >= 30 ? 8 : mVal >= 20 ? 5 : mVal >= 10 ? 3 : 1;
+  } else { p.marginScore = 0; }
+}
+
+function addProduct() {
+  const name     = document.getElementById('inp-name').value.trim();
+  const brand    = document.getElementById('inp-brand').value.trim();
+  const url      = document.getElementById('inp-url').value.trim();
+  const price    = parseFloat(document.getElementById('inp-price').value) || 0;
+  const cost     = parseFloat(document.getElementById('inp-cost').value) || 0;
+  const logistic = parseFloat(document.getElementById('inp-logistic').value) || 0;
+  const packing  = parseFloat(document.getElementById('inp-packing').value) || 0;
+  const note     = document.getElementById('inp-note').value.trim();
+  if (!name) { showToast('請輸入商品名稱', 'error'); return; }
+  if (!price) { showToast('請輸入售價', 'error'); return; }
+  const p = { id:nextId++, name, brand, url, price, cost, logistic, packing, note,
+    status:'waiting', crawlData:null, totalScore:null, marginWith:null, marginWithout:null,
+    marginScore:0, scores:{market:0,demand:0,competition:0,diff:0,complexity:0}, scoreExplanations:{} };
+  computeMargin(p);
+  products.push(p);
+  ['inp-name','inp-brand','inp-url','inp-price','inp-cost','inp-logistic','inp-packing','inp-note']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  renderQueue(); renderAll();
+  scheduleAutoSave();
+  showToast(`✅ "${name}" 已加入，同步至 Sheets 中...`, 'success');
+}
+
+function removeProduct(id) {
+  products = products.filter(p => p.id !== id);
+  renderQueue(); renderAll(); scheduleAutoSave();
+  showToast('已移除商品', 'info');
 }
 
 // ══════════════════════════════════════════════════════════
-// ★ 核心 API：接收 Chrome MCP 爬蟲結果注入
-// ★ v12 新增：注入後自動儲存，其他人開啟即可看到
-// ★ v12 修正：PTT / 平台 null 值正確處理，不給假評分
+// ★ 核心 API：爬蟲結果注入 → 自動同步 Sheets
 // ══════════════════════════════════════════════════════════
 async function injectCrawlResult(productId, data) {
   const p = products.find(x => x.id === productId);
   if (!p) { console.error('找不到商品 id:', productId); return false; }
-
   p.status = 'done';
   p.crawlData = data;
-
-  // 解析評分（只計入有效分數）
   if (data.scores) {
     p.scores = {
       market:      Math.min(10, Math.max(1, parseInt(data.scores.market)      || 5)),
@@ -819,83 +745,65 @@ async function injectCrawlResult(productId, data) {
     };
     p.scoreExplanations = data.scores.explanation || {};
   }
-
-  // ★ v12 PTT 修正：social 中 null 值不計入評分，不會影響分數
-  // （v11 bug：PTT 搜尋無結果卻給 ★★★★★ → 現在 null 直接跳過）
-
   const w = { market:20, demand:20, competition:20, diff:20, complexity:10 };
   let wSum = 0;
-  Object.entries(w).forEach(([k, v]) => { wSum += p.scores[k] * v / 10; });
+  Object.entries(w).forEach(([k,v]) => { wSum += p.scores[k] * v / 10; });
   wSum += p.marginScore;
   p.totalScore = Math.round(Math.min(100, Math.max(0, wSum)));
-
   if (data.swot)    p.swot    = data.swot;
   if (data.actions) p.actions = data.actions;
-
   renderQueue(); renderAll();
   console.log(`✅ "${p.name}" 注入完成，總分：${p.totalScore}`);
-
-  // ★ v12 核心：自動儲存，其他使用者立即可見
-  await saveToStorage();
-  showToast(`✅ "${p.name}" 爬蟲結果已儲存，其他人開啟即可看到`, 'success', 4000);
+  // ★ 自動同步至 Google Sheets
+  await saveToSheets();
+  showToast(`✅ "${p.name}" 結果已同步至 Sheets，所有人立即可見`, 'success', 4000);
   return true;
 }
 
-// 輔助控制
-function setCrawling(productId) {
-  const p = products.find(x => x.id === productId);
+function setCrawling(id) {
+  const p = products.find(x => x.id === id);
   if (p) { p.status = 'crawling'; renderQueue(); renderAll(); scheduleAutoSave(); }
 }
-function setCrawlError(productId, msg) {
-  const p = products.find(x => x.id === productId);
+function setCrawlError(id, msg) {
+  const p = products.find(x => x.id === id);
   if (p) { p.status = 'error'; p.crawlData = { error: msg }; renderQueue(); renderAll(); scheduleAutoSave(); }
 }
 function getPendingProducts() {
   return products.filter(p => p.status === 'waiting').map(p => ({
-    id: p.id, name: p.name, brand: p.brand || '未指定',
-    price: p.price, url: p.url || '', note: p.note || ''
+    id:p.id, name:p.name, brand:p.brand||'', price:p.price, url:p.url||'', note:p.note||''
   }));
 }
 
 // ══════════════════════════════════════════════════════════
-// RENDER QUEUE
+// RENDER
 // ══════════════════════════════════════════════════════════
 function renderQueue() {
   const el = document.getElementById('pq');
-  updateStoragePanel();
+  updateStatusPanel();
   if (!products.length) {
     el.innerHTML = `<div class="empty" style="padding:20px;"><p style="font-size:12px;">尚未加入商品</p></div>`;
     return;
   }
-  const statusMap = {
+  const smap = {
     waiting:  { label:'⏳ 等待爬蟲', bg:'#fef3c7', color:'#92400e' },
     crawling: { label:'🔍 爬蟲中',   bg:'#eff6ff', color:'#1d4ed8' },
     done:     { label:'✓ 完成',       bg:'#d1fae5', color:'#065f46' },
     error:    { label:'! 失敗',        bg:'#fee2e2', color:'#991b1b' },
   };
   el.innerHTML = products.map(p => {
-    const s = statusMap[p.status] || statusMap.waiting;
+    const s = smap[p.status] || smap.waiting;
     return `<div class="queue-item ${p.status}">
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;">${p.name}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px;">NT$${p.price.toLocaleString()} ${p.brand ? '· ' + p.brand : ''}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px;">NT$${p.price.toLocaleString()} ${p.brand ? '· '+p.brand : ''}</div>
         <span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:700;padding:1px 8px;border-radius:4px;background:${s.bg};color:${s.color};">${s.label}</span>
-        ${p.status === 'done' ? '<span class="shared-tag" style="margin-left:4px;">☁️ 已共享</span>' : ''}
+        ${p.status==='done' ? '<span class="sheets-tag" style="margin-left:4px;">📊 Sheets 已同步</span>' : ''}
       </div>
       <button class="btn-danger-xs" onclick="removeProduct(${p.id})">×</button>
     </div>`;
   }).join('');
 }
 
-function removeProduct(id) {
-  products = products.filter(p => p.id !== id);
-  renderQueue(); renderAll(); scheduleAutoSave();
-  showToast('已移除商品', 'info');
-}
-
-// ══════════════════════════════════════════════════════════
-// RENDER ALL
-// ══════════════════════════════════════════════════════════
 function renderAll() { renderResults(); renderCost(); }
 
 function renderResults() {
@@ -903,71 +811,57 @@ function renderResults() {
   const wrap = document.getElementById('results-wrap');
   if (!products.length) {
     statsRow.style.display = 'none';
-    wrap.innerHTML = `<div class="empty"><p>新增商品並完成爬蟲後自動顯示<br><small style="color:var(--muted);">資料儲存後其他使用者開啟也能看到</small></p></div>`;
+    wrap.innerHTML = `<div class="empty"><p>新增商品並完成爬蟲後顯示<br><small style="color:var(--muted);">資料同步至 Google Sheets，任何人開啟都能看到</small></p></div>`;
     return;
   }
   statsRow.style.display = 'grid';
-  const done = products.filter(p => p.status === 'done' && p.totalScore != null);
-  const go   = done.filter(p => p.totalScore >= 70).length;
-  const mws  = done.filter(p => p.cost > 0 && p.marginWith   != null).map(p => p.marginWith);
-  const mos  = done.filter(p => p.cost > 0 && p.marginWithout != null).map(p => p.marginWithout);
-  const avgMw = mws.length ? mws.reduce((a,b) => a+b) / mws.length : null;
-  const avgMo = mos.length ? mos.reduce((a,b) => a+b) / mos.length : null;
-
+  const done = products.filter(p => p.status==='done' && p.totalScore!=null);
+  const go   = done.filter(p => p.totalScore>=70).length;
+  const mws  = done.filter(p => p.cost>0 && p.marginWith!=null).map(p => p.marginWith);
+  const mos  = done.filter(p => p.cost>0 && p.marginWithout!=null).map(p => p.marginWithout);
   document.getElementById('st-total').textContent = products.length;
   document.getElementById('st-go').textContent    = go;
-  document.getElementById('st-m1').textContent    = avgMw != null ? avgMw.toFixed(1) + '%' : '—';
-  document.getElementById('st-m2').textContent    = avgMo != null ? avgMo.toFixed(1) + '%' : '—';
+  document.getElementById('st-m1').textContent    = mws.length ? (mws.reduce((a,b)=>a+b)/mws.length).toFixed(1)+'%' : '—';
+  document.getElementById('st-m2').textContent    = mos.length ? (mos.reduce((a,b)=>a+b)/mos.length).toFixed(1)+'%' : '—';
 
-  const sorted = [...products].sort((a,b) => (b.totalScore ?? -1) - (a.totalScore ?? -1));
-
+  const sorted = [...products].sort((a,b) => (b.totalScore??-1)-(a.totalScore??-1));
   wrap.innerHTML = `<table>
     <thead><tr>
-      <th>#</th><th>商品名稱</th><th>售價</th>
-      <th>毛利（含運 / 不含運）</th>
-      <th>市場數據（實搜）</th>
-      <th>評分</th><th>判定</th><th></th>
+      <th>#</th><th>商品名稱</th><th>售價</th><th>毛利（含運/不含運）</th>
+      <th>市場數據</th><th>評分</th><th>判定</th><th></th>
     </tr></thead>
     <tbody>${sorted.map((p,i) => {
-      const v          = verdict(p.totalScore);
-      const mw         = p.marginWith, mo = p.marginWithout;
-      const cd         = p.crawlData;
+      const v = verdict(p.totalScore);
+      const cd = p.crawlData;
       const trendScore = cd?.keywords?.trendScore;
       const shopeeCount = cd?.platforms?.shopee?.count;
-      const credScore  = cd?.dataIntegrity?.credibilityScore;
+      const credScore = cd?.dataIntegrity?.credibilityScore;
       return `<tr>
         <td style="font-weight:700;color:var(--muted);">#${i+1}</td>
         <td>
           <div style="font-weight:700;">${p.name}</div>
           ${p.brand ? `<div style="font-size:11px;color:var(--dim);">${p.brand}</div>` : ''}
-          <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">
-            ${p.status === 'done' ? '<span style="font-size:10px;background:var(--green-dim);color:var(--green-dark);padding:1px 5px;border-radius:3px;">✓ 實搜</span>' : ''}
-            ${p.status === 'done' ? '<span class="shared-tag">☁️ 共享</span>' : ''}
-          </div>
+          ${p.status==='done' ? '<span style="font-size:10px;background:var(--green-dim);color:var(--green-dark);padding:1px 5px;border-radius:3px;">✓ 實搜</span> <span class="sheets-tag">📊 Sheets</span>' : ''}
         </td>
-        <td style="white-space:nowrap;font-weight:700;">NT$${p.price.toLocaleString()}</td>
+        <td style="font-weight:700;white-space:nowrap;">NT$${p.price.toLocaleString()}</td>
         <td>
-          ${p.cost > 0 ? `<div class="margin-col">
-            <div class="margin-row"><span class="margin-label">含運</span><div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${Math.max(0, Math.min(100, mw ?? 0))}%;background:${mc(mw ?? 0)};"></div></div><span class="margin-val" style="color:${mc(mw ?? 0)};">${safeFixed(mw)}%</span></div>
-            <div class="margin-row"><span class="margin-label">不含運</span><div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${Math.max(0, Math.min(100, mo ?? 0))}%;background:${mc(mo ?? 0)};"></div></div><span class="margin-val" style="color:${mc(mo ?? 0)};">${safeFixed(mo)}%</span></div>
+          ${p.cost>0 ? `<div class="margin-col">
+            <div class="margin-row"><span class="margin-label">含運</span><div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${Math.max(0,Math.min(100,p.marginWith??0))}%;background:${mc(p.marginWith??0)};"></div></div><span class="margin-val" style="color:${mc(p.marginWith??0)};">${safeFixed(p.marginWith)}%</span></div>
+            <div class="margin-row"><span class="margin-label">不含運</span><div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${Math.max(0,Math.min(100,p.marginWithout??0))}%;background:${mc(p.marginWithout??0)};"></div></div><span class="margin-val" style="color:${mc(p.marginWithout??0)};">${safeFixed(p.marginWithout)}%</span></div>
           </div>` : `<span style="font-size:11px;color:var(--muted);">未填成本</span>`}
         </td>
         <td>
-          ${p.status === 'waiting'  ? `<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:5px;">⏳ 等待 Chrome MCP 爬蟲</span>` :
-            p.status === 'crawling' ? `<span class="badge badge-crawl"><span class="spinner" style="margin-right:5px;"></span>爬蟲中</span>` :
-            p.status === 'error'    ? `<span style="font-size:11px;color:var(--red);">⚠️ 爬蟲失敗</span>` :
+          ${p.status==='waiting' ? `<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:5px;">⏳ 等待爬蟲</span>` :
+            p.status==='crawling' ? `<span style="font-size:11px;color:#1d4ed8;">🔍 爬蟲中...</span>` :
+            p.status==='error' ? `<span style="font-size:11px;color:var(--red);">⚠️ 爬蟲失敗</span>` :
             cd ? `<div style="font-size:12px;">
-              <div style="color:var(--dim);">Trends: <strong>${trendScore != null ? trendScore + '/100' : '無資料'}</strong></div>
-              <div style="color:var(--dim);">蝦皮競品: <strong>${shopeeCount || '無資料'}</strong></div>
-              ${credScore != null ? `<div style="color:var(--dim);">可信度: <strong>${credScore}/100</strong></div>` : ''}
-            </div>` : `<span style="color:var(--muted);font-size:11px;">—</span>`}
+              <div style="color:var(--dim);">Trends: <strong>${trendScore!=null ? trendScore+'/100' : '無資料'}</strong></div>
+              <div style="color:var(--dim);">蝦皮競品: <strong>${shopeeCount||'無資料'}</strong></div>
+              ${credScore!=null ? `<div style="color:var(--dim);">可信度: <strong>${credScore}/100</strong></div>` : ''}
+            </div>` : '—'}
         </td>
         <td>
-          ${p.totalScore != null ? `
-            <div style="text-align:center;">
-              <span class="score-num score-${v.cls}">${p.totalScore}</span>
-              <div style="font-size:10px;color:var(--muted);margin-top:2px;">/ 100</div>
-            </div>` : `<span class="score-num score-wait">—</span>`}
+          ${p.totalScore!=null ? `<div style="text-align:center;"><span class="score-num score-${v.cls}">${p.totalScore}</span><div style="font-size:10px;color:var(--muted);margin-top:2px;">/100</div></div>` : `<span class="score-num score-wait">—</span>`}
         </td>
         <td><span class="badge badge-${v.cls}">${v.label}</span></td>
         <td><button class="btn btn-outline btn-xs" onclick="showDetail(${p.id})">詳情</button></td>
@@ -980,401 +874,148 @@ function renderCost() {
   const el = document.getElementById('cost-wrap');
   if (!products.length) { el.innerHTML = `<div class="empty"><p>新增商品後顯示</p></div>`; return; }
   el.innerHTML = `<table>
-    <thead><tr><th>商品名稱</th><th>售價</th><th>進貨成本</th><th>出貨運費</th><th>包材</th><th>含運毛利</th><th>不含運毛利</th><th>LINE達標</th></tr></thead>
+    <thead><tr><th>商品名稱</th><th>售價</th><th>進貨</th><th>運費</th><th>包材</th><th>含運毛利</th><th>不含運毛利</th><th>LINE達標</th></tr></thead>
     <tbody>${products.map(p => {
-      const mw = p.marginWith, mo = p.marginWithout;
-      const ok = p.marginWith != null && p.marginWithout != null && (p.marginWith >= 30 || p.marginWithout >= 35);
+      const ok = p.marginWith!=null && p.marginWithout!=null && (p.marginWith>=30 || p.marginWithout>=35);
       return `<tr>
         <td style="font-weight:700;">${p.name}</td>
         <td>NT$${p.price.toLocaleString()}</td>
-        <td>${p.cost > 0 ? 'NT$' + p.cost : '—'}</td>
-        <td>${p.logistic > 0 ? 'NT$' + p.logistic : '—'}</td>
-        <td>${p.packing > 0 ? 'NT$' + p.packing : '—'}</td>
-        <td style="font-weight:700;color:${mc(mw ?? 0)};">${p.cost > 0 ? safeFixed(mw) + '%' : '—'}</td>
-        <td style="font-weight:700;color:${mc(mo ?? 0)};">${p.cost > 0 ? safeFixed(mo) + '%' : '—'}</td>
-        <td>
-          ${p.cost > 0
-            ? `<span style="font-size:12px;font-weight:700;color:${ok ? 'var(--green)' : 'var(--red)'};">${ok ? '✅ 達標' : '❌ 未達標'}</span>`
-            : `<span style="font-size:11px;color:var(--muted);">待確認</span>`}
-        </td>
+        <td>${p.cost>0?'NT$'+p.cost:'—'}</td>
+        <td>${p.logistic>0?'NT$'+p.logistic:'—'}</td>
+        <td>${p.packing>0?'NT$'+p.packing:'—'}</td>
+        <td style="font-weight:700;color:${mc(p.marginWith??0)};">${p.cost>0?safeFixed(p.marginWith)+'%':'—'}</td>
+        <td style="font-weight:700;color:${mc(p.marginWithout??0)};">${p.cost>0?safeFixed(p.marginWithout)+'%':'—'}</td>
+        <td>${p.cost>0 ? `<span style="font-size:12px;font-weight:700;color:${ok?'var(--green)':'var(--red)'};">${ok?'✅ 達標':'❌ 未達'}</span>` : `<span style="font-size:11px;color:var(--muted);">待確認</span>`}</td>
       </tr>`;
     }).join('')}</tbody>
   </table>`;
 }
 
-// ══════════════════════════════════════════════════════════
-// DETAIL MODAL（含 v12 PTT 修正顯示邏輯）
-// ══════════════════════════════════════════════════════════
+// ── DETAIL MODAL ──
 function showDetail(id) {
-  const p  = products.find(x => x.id === id);
+  const p = products.find(x => x.id === id);
   if (!p) return;
   const cd = p.crawlData;
   const v  = verdict(p.totalScore);
-
   document.getElementById('modal-title').textContent = p.name;
-  document.getElementById('modal-sub').textContent =
-    `${p.brand || ''} · NT$${p.price.toLocaleString()} · 判定：${v.label}${p.totalScore != null ? '（' + p.totalScore + '/100）' : ''}`;
-
+  document.getElementById('modal-sub').textContent = `${p.brand||''} · NT$${p.price.toLocaleString()} · ${v.label}${p.totalScore!=null?'（'+p.totalScore+'/100）':''}`;
   const body = document.getElementById('modal-body');
-
-  if (!cd || p.status === 'waiting') {
-    body.innerHTML = `
-      <div class="warn-box">⏳ 尚未執行 Chrome MCP 爬蟲，請告訴 Claude：「請幫我爬商品 #${p.id} ${p.name}」</div>
-      <div class="info-box">爬蟲完成後結果會自動儲存，此頁面及其他使用者都能立即看到。</div>`;
-    document.getElementById('detail-modal').classList.add('open');
-    return;
+  if (!cd || p.status==='waiting') {
+    body.innerHTML = `<div class="warn-box">⏳ 尚未爬蟲，請告訴 Claude：「請幫我爬商品 #${p.id} ${p.name}」</div>`;
+    document.getElementById('detail-modal').classList.add('open'); return;
   }
-  if (p.status === 'error') {
-    body.innerHTML = `<div class="warn-box">⚠️ 爬蟲失敗：${cd.error || '未知錯誤'}</div>`;
-    document.getElementById('detail-modal').classList.add('open');
-    return;
+  if (p.status==='error') {
+    body.innerHTML = `<div class="warn-box">⚠️ 爬蟲失敗：${cd.error||'未知錯誤'}</div>`;
+    document.getElementById('detail-modal').classList.add('open'); return;
   }
-
-  // 評分視覺化
   const dims = [
-    ['市場規模', p.scores.market,      p.scoreExplanations.market      || ''],
-    ['需求強度', p.scores.demand,      p.scoreExplanations.demand      || ''],
-    ['競爭密度', p.scores.competition, p.scoreExplanations.competition || ''],
-    ['差異化空間',p.scores.diff,       p.scoreExplanations.diff        || ''],
-    ['作業複雜度',p.scores.complexity, p.scoreExplanations.complexity  || ''],
+    ['市場規模',p.scores.market,p.scoreExplanations.market||''],
+    ['需求強度',p.scores.demand,p.scoreExplanations.demand||''],
+    ['競爭密度',p.scores.competition,p.scoreExplanations.competition||''],
+    ['差異化空間',p.scores.diff,p.scoreExplanations.diff||''],
+    ['作業複雜度',p.scores.complexity,p.scoreExplanations.complexity||''],
   ];
-
   body.innerHTML = `
-    <!-- 評分雷達 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px;">
       <div>
         <div class="modal-section-title" style="margin-bottom:10px;">📊 各維度評分</div>
-        ${dims.map(([lbl, score, exp]) => {
-          const pct = score / 10 * 100;
-          const col = score >= 7 ? 'var(--green)' : score >= 5 ? 'var(--yellow)' : 'var(--red)';
-          return `<div class="srow">
-            <div class="srow-lbl">${lbl}</div>
-            <div class="srow-bar"><div class="srow-fill" style="width:${pct}%;background:${col};"></div></div>
-            <div class="srow-val" style="color:${col};">${score}</div>
-          </div>${exp ? `<div style="font-size:11px;color:var(--muted);margin:-6px 0 8px 123px;line-height:1.5;">${exp}</div>` : ''}`;
+        ${dims.map(([lbl,score,exp]) => {
+          const col = score>=7?'var(--green)':score>=5?'var(--yellow)':'var(--red)';
+          return `<div class="srow"><div class="srow-lbl">${lbl}</div><div class="srow-bar"><div class="srow-fill" style="width:${score*10}%;background:${col};"></div></div><div class="srow-val" style="color:${col};">${score}</div></div>${exp?`<div style="font-size:11px;color:var(--muted);margin:-6px 0 8px 123px;line-height:1.5;">${exp}</div>`:''}`;
         }).join('')}
-        <div class="srow">
-          <div class="srow-lbl">毛利可行性</div>
-          <div class="srow-bar"><div class="srow-fill" style="width:${p.marginScore * 10}%;background:${mc(p.marginWith ?? 0)};"></div></div>
-          <div class="srow-val" style="color:${mc(p.marginWith ?? 0)};">${p.marginScore}</div>
-        </div>
+        <div class="srow"><div class="srow-lbl">毛利可行性</div><div class="srow-bar"><div class="srow-fill" style="width:${p.marginScore*10}%;background:${mc(p.marginWith??0)};"></div></div><div class="srow-val" style="color:${mc(p.marginWith??0)};">${p.marginScore}</div></div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
-        <div style="font-size:56px;font-weight:900;color:${v.cls==='go'?'var(--green)':v.cls==='maybe'?'var(--yellow)':'var(--red)'};font-variant-numeric:tabular-nums;line-height:1;">${p.totalScore ?? '—'}</div>
+        <div style="font-size:56px;font-weight:900;color:${v.cls==='go'?'var(--green)':v.cls==='maybe'?'var(--yellow)':'var(--red)'};line-height:1;">${p.totalScore??'—'}</div>
         <div style="font-size:13px;color:var(--muted);">/ 100</div>
         <span class="badge badge-${v.cls}" style="font-size:13px;padding:5px 14px;">${v.label}</span>
-        ${p.status === 'done' ? '<span class="shared-tag">☁️ 資料已共享</span>' : ''}
+        <span class="sheets-tag">📊 已同步至 Sheets</span>
       </div>
     </div>
-
-    <!-- Trends -->
-    <div class="modal-section">
-      <div class="modal-section-title">📈 Google Trends 台灣搜尋趨勢（實搜）</div>
-      ${cd.keywords?.trendScore != null ? `
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">
-          <div style="font-size:36px;font-weight:800;color:${cd.keywords.trendClass==='trend-up'?'var(--green)':cd.keywords.trendClass==='trend-down'?'var(--red)':'var(--yellow)'};">
-            ${cd.keywords.trendScore}
-          </div>
-          <div>
-            <div style="font-size:13px;font-weight:700;">${cd.keywords.trend || '—'} ${cd.keywords.trendClass==='trend-up'?'↑':cd.keywords.trendClass==='trend-down'?'↓':'→'}</div>
-            <div style="font-size:11px;color:var(--dim);">台灣 Google Trends 指數（0–100）
-              ${cd.keywords.trendSourceUrl ? `<a href="${cd.keywords.trendSourceUrl}" target="_blank" style="margin-left:6px;color:var(--accent);">[查看來源]</a>` : ''}
-            </div>
-          </div>
-        </div>` :
-        `<div class="missing-data-box">⚠️ Google Trends：無資料（搜尋量過低或精確詞無資料）</div>`}
-      ${cd.keywords?.trendReason ? `<div style="font-size:12px;color:var(--dim);background:var(--accent-dim);border-radius:7px;padding:8px 12px;margin-bottom:10px;line-height:1.7;">${cd.keywords.trendReason}</div>` : ''}
-      ${cd.keywords?.main?.length ? `<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:4px;">🔥 核心關鍵字</div>
-        <div class="kw-tags">${cd.keywords.main.map(k => `<span class="kw-tag kw-hot">${k}</span>`).join('')}</div></div>` : ''}
-      ${cd.keywords?.actionKws ? `
-        <div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;">
-          ${cd.keywords.actionKws.shopeeTitle ? `<div style="margin-bottom:6px;"><span style="font-size:11px;color:var(--dim);">🛒 蝦皮標題建議：</span><div style="background:var(--accent-dim);border-radius:6px;padding:6px 10px;font-size:12px;font-weight:700;color:#1e40af;margin-top:3px;">${cd.keywords.actionKws.shopeeTitle}</div></div>` : ''}
-          ${cd.keywords.actionKws.lineCopy?.length ? `<div><span style="font-size:11px;color:var(--dim);">💬 LINE 主打詞：</span><div class="kw-tags">${cd.keywords.actionKws.lineCopy.map(k => `<span class="kw-tag kw-action">${k}</span>`).join('')}</div></div>` : ''}
-        </div>` : ''}
-    </div>
-
-    <!-- 平台競品 -->
-    <div class="modal-section">
-      <div class="modal-section-title">🛒 多平台競品分析（Chrome MCP 實搜）</div>
-      <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
-        <span style="font-size:12px;color:var(--dim);">整體競爭：</span>
-        <span class="badge ${cd.platforms?.overallCompetition==='低'?'badge-go':cd.platforms?.overallCompetition==='高'?'badge-no':'badge-maybe'}">${cd.platforms?.overallCompetition || '—'}</span>
-        <span style="font-size:12px;font-weight:700;">${cd.platforms?.marketOpportunity || ''}</span>
-      </div>
-      <div class="platform-grid">
-        ${[
-          ['🛒 蝦皮',  cd.platforms?.shopee?.count,   cd.platforms?.shopee?.sales  || cd.platforms?.shopee?.status, cd.platforms?.shopee?.priceRange  || '', cd.platforms?.shopee?.sourceUrl],
-          ['📺 momo',  cd.platforms?.momo?.count,    cd.platforms?.momo?.status,   cd.platforms?.momo?.notes     || '', cd.platforms?.momo?.sourceUrl],
-          ['🖥 PChome',cd.platforms?.pchome?.count,  cd.platforms?.pchome?.status, cd.platforms?.pchome?.notes   || '', cd.platforms?.pchome?.sourceUrl],
-          ['🔵 Yahoo', cd.platforms?.yahoo?.count,   cd.platforms?.yahoo?.status,  cd.platforms?.yahoo?.notes    || '', cd.platforms?.yahoo?.sourceUrl],
-          ['🏪 家樂福',cd.platforms?.carrefour?.count|| null, cd.platforms?.carrefour?.status || null, '', null],
-        ].map(([name, count, sub, note, url]) => {
-          const hasData = count != null && count !== 'null' && count !== '';
-          return `<div class="platform-cell">
-            <div class="platform-name">${name}</div>
-            <div class="platform-val ${!hasData ? 'no-data' : ''}">${hasData ? count : '⚠️ 未爬取'}</div>
-            <div class="platform-sub">${sub && sub !== 'null' ? sub : ''}</div>
-            ${note && note !== 'null' ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">${note}</div>` : ''}
-            ${url && url !== 'null' ? `<a href="${url}" target="_blank" style="font-size:10px;color:var(--accent);">查看搜尋結果 →</a>` : ''}
-          </div>`;
-        }).join('')}
-      </div>
-      ${cd.platforms?.opportunityDetail ? `<div style="margin-top:8px;font-size:12px;color:var(--dim);padding:8px 10px;background:var(--surface2);border-radius:6px;">${cd.platforms.opportunityDetail}</div>` : ''}
-    </div>
-
-    <!-- 社群聲量（v12：null 明確標示無資料，不給假評分） -->
-    <div class="modal-section">
-      <div class="modal-section-title">📢 社群媒體聲量（實搜）</div>
-      ${cd.social?.dataNote ? `<div class="warn-box">${cd.social.dataNote}</div>` : ''}
-      <div class="social-grid">
-        ${[['FB', cd.social?.facebook], ['IG', cd.social?.instagram], ['Threads', cd.social?.threads],
-           ['PTT', cd.social?.ptt], ['Dcard', cd.social?.dcard], ['小紅書', cd.social?.xiaohongshu],
-           ['TikTok', cd.social?.tiktok], ['新聞', cd.social?.news], ['KOL', cd.social?.kol]]
-          .map(([name, v]) => {
-            if (v === null || v === undefined) {
-              // ★ v12 修正：null 明確顯示「無資料，不計分」，不給假分
-              return `<div class="social-row">
-                <div class="social-name">${name}</div>
-                <div class="missing-data-box" style="flex:1;padding:3px 8px;">⚠️ 無資料（不計入評分）</div>
-              </div>`;
-            }
-            if (typeof v === 'object' && v.score != null) {
-              return `<div class="social-row">
-                <div class="social-name">${name}</div>
-                <div class="social-bar-bg"><div class="social-bar-fill" style="width:${v.score}%;background:${v.score>=60?'var(--green)':v.score>=35?'var(--accent)':'var(--muted)'};"></div></div>
-                <div class="social-val">${v.score}</div>
-                <div style="font-size:11px;color:var(--muted);flex:2;margin-left:8px;">${v.notes || ''}</div>
-                ${v.sourceUrl ? `<a href="${v.sourceUrl}" target="_blank" style="font-size:10px;color:var(--accent);flex-shrink:0;">查看</a>` : ''}
-              </div>`;
-            }
-            return '';
-          }).join('')}
-      </div>
-    </div>
-
-    <!-- 品牌分析 -->
-    ${cd.brand ? `<div class="modal-section">
-      <div class="modal-section-title">🏷 品牌分析</div>
-      <table style="width:100%;font-size:12px;">
-        <tr><td style="color:var(--dim);padding:4px 0;width:100px;">品牌</td><td style="font-weight:700;">${cd.brand.brandName || '—'}</td></tr>
-        ${cd.brand.certifications?.length ? `<tr><td style="color:var(--dim);padding:4px 0;">認證</td><td>${cd.brand.certifications.join('、')}</td></tr>` : ''}
-        <tr><td style="color:var(--dim);padding:4px 0;">蝦皮排名</td><td>${cd.brand.shopeeRank || '⚠️ 無資料'}</td></tr>
-        <tr><td style="color:var(--dim);padding:4px 0;">市場定位</td><td><span class="badge ${cd.brand.marketPosition==='高端'?'badge-no':cd.brand.marketPosition==='中端'?'badge-maybe':'badge-go'}">${cd.brand.marketPosition || '—'}</span></td></tr>
-        <tr><td style="color:var(--dim);padding:4px 0;">評價分數</td><td>${cd.brand.reviewScore != null ? cd.brand.reviewScore + '/5.0（' + cd.brand.reviewCount + '）' : '⚠️ 無資料'}</td></tr>
-        <tr><td style="color:var(--dim);padding:4px 0;">目標客群</td><td>${cd.brand.targetAudience || '—'}</td></tr>
-      </table>
-      ${cd.brand.topBrands?.length ? `<div style="margin-top:10px;"><div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:5px;">🏆 同類熱門競品</div><div class="kw-tags">${cd.brand.topBrands.slice(0,5).map(b => `<span class="kw-tag kw-action">${b}</span>`).join('')}</div></div>` : ''}
-      ${cd.brand.painPoints?.length ? `<div style="margin-top:10px;"><div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:5px;">😤 消費者痛點（文案切入點）</div><ul style="margin:0;padding-left:16px;">${cd.brand.painPoints.map(pt => `<li style="font-size:11px;color:var(--dim);line-height:1.8;">${pt}</li>`).join('')}</ul></div>` : ''}
-      ${cd.brand.priceRange ? `<div style="margin-top:10px;padding:8px 12px;background:var(--surface2);border-radius:7px;"><span style="font-size:11px;font-weight:700;">💰 市場價格區間：</span><span style="font-size:12px;">${cd.brand.priceRange}</span></div>` : ''}
-    </div>` : ''}
-
-    <!-- SWOT -->
-    <div class="modal-section">
-      <div class="modal-section-title">📋 SWOT 分析</div>
-      ${p.swot ? `<div class="swot-grid">
-        ${['s','w','o','t'].map(k => {
-          const labels = { s:'S 優勢', w:'W 劣勢', o:'O 機會', t:'T 威脅' };
-          const items  = Array.isArray(p.swot[k]) ? p.swot[k] : [];
-          return `<div class="swot-${k}">
-            <div class="swot-label">${labels[k]}</div>
-            ${items.length ? `<ul class="swot-list">${items.map(i => `<li>${i}</li>`).join('')}</ul>` : `<div style="font-size:11px;opacity:.6;">—</div>`}
-          </div>`;
-        }).join('')}
-      </div>` : `<div class="no-data-box">SWOT 資料不足，爬蟲完成後生成</div>`}
-    </div>
-
-    <!-- 執行建議 -->
-    <div class="modal-section">
-      <div class="modal-section-title">🚀 執行建議</div>
-      ${p.actions?.length ? `<div class="action-plan">
-        ${p.actions.map(a => `<div class="action-item">
-          <span class="action-week ${a.week?.includes('1')?'aw-1':a.week?.includes('2')||a.week?.includes('3')?'aw-2':a.week?.includes('4')?'aw-3':'aw-c'}">${a.week || '—'}</span>
-          <div>
-            <div class="action-title">${a.priority==='高'?'🔴':'🟡'} ${a.title}</div>
-            <div class="action-desc">${a.desc}</div>
-          </div>
-        </div>`).join('')}
-      </div>` : `<div class="no-data-box">執行建議將在爬蟲完成後生成</div>`}
-    </div>
-
-    <!-- 來源連結 -->
-    <div class="modal-section">
-      <div class="modal-section-title">🔗 資料來源連結</div>
-      ${cd.sources?.length ?
-        cd.sources.map(s => `<div class="source-item">
-          <span class="source-type ${s.type?.includes('Chrome')||s.type?.includes('MCP')?'src-mcp':s.type?.includes('無資料')?'src-missing':'src-manual'}">${s.type || '來源'}</span>
-          <div style="flex:1;">
-            <div style="font-size:11px;color:var(--dim);">${s.dataPoints || '—'}</div>
-            ${s.url && s.url !== 'null' ? `<a href="${s.url}" target="_blank" class="source-link">${s.url}</a>` : ''}
-            ${s.retrievedAt ? `<div style="font-size:10px;color:var(--muted);margin-top:2px;">查詢時間：${s.retrievedAt}</div>` : ''}
-          </div>
-        </div>`).join('')
-        : `<div class="no-data-box">尚無來源資料</div>`}
-    </div>
-
-    <!-- 可信度聲明 -->
+    ${p.swot ? `<div class="modal-section"><div class="modal-section-title">📋 SWOT 分析</div><div class="swot-grid">${['s','w','o','t'].map(k=>{const labels={s:'S 優勢',w:'W 劣勢',o:'O 機會',t:'T 威脅'};const items=Array.isArray(p.swot[k])?p.swot[k]:[];return `<div class="swot-${k}"><div class="swot-label">${labels[k]}</div>${items.length?`<ul class="swot-list">${items.map(i=>`<li>${i}</li>`).join('')}</ul>`:'<div style="font-size:11px;opacity:.6;">—</div>'}</div>`;}).join('')}</div></div>` : ''}
+    ${p.actions?.length ? `<div class="modal-section"><div class="modal-section-title">🚀 執行建議</div><div class="action-plan">${p.actions.map(a=>`<div class="action-item"><span class="action-week ${a.week?.includes('1')?'aw-1':a.week?.includes('2')||a.week?.includes('3')?'aw-2':'aw-3'}">${a.week||'—'}</span><div><div class="action-title">${a.priority==='高'?'🔴':'🟡'} ${a.title}</div><div class="action-desc">${a.desc}</div></div></div>`).join('')}</div></div>` : ''}
+    ${cd.sources?.length ? `<div class="modal-section"><div class="modal-section-title">🔗 資料來源</div>${cd.sources.map(s=>`<div class="source-item"><span class="source-type">${s.type||'來源'}</span><div><div style="font-size:11px;color:var(--dim);">${s.dataPoints||'—'}</div>${s.url&&s.url!=='null'?`<a href="${s.url}" target="_blank" style="font-size:10px;color:var(--accent);">${s.url}</a>`:''}<div style="font-size:10px;color:var(--muted);">${s.retrievedAt||''}</div></div></div>`).join('')}</div>` : ''}
     <div class="modal-section" style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;">
-      <div class="modal-section-title" style="font-size:11px;color:var(--dim);">📋 資料可信度聲明</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <span style="font-size:12px;font-weight:600;">可信度評分：</span>
-        ${cd.dataIntegrity?.credibilityScore != null
-          ? `<span class="credibility-badge ${cd.dataIntegrity.credibilityScore>=80?'cred-high':cd.dataIntegrity.credibilityScore>=60?'cred-mid':'cred-low'}">${cd.dataIntegrity.credibilityScore} / 100</span>`
-          : `<span class="credibility-badge cred-na">待評估</span>`}
-      </div>
-      ${cd.dataIntegrity?.missingData?.length
-        ? `<div style="margin-bottom:8px;"><span style="font-size:11px;font-weight:700;">⚠️ 未爬取平台（不計入評分）：</span>
-           <span style="font-size:11px;color:var(--red);">${cd.dataIntegrity.missingData.join('、')}</span></div>` : ''}
-      <div style="margin-bottom:6px;font-size:11px;">
-        <span style="font-weight:700;">矛盾資訊：</span>
-        <span style="color:${cd.dataIntegrity?.contradictions&&cd.dataIntegrity.contradictions!=='無'?'var(--red)':'var(--green)'};">${cd.dataIntegrity?.contradictions || '無'}</span>
-      </div>
-      <div style="font-size:11px;color:var(--dim);">搜尋日期：${cd.dataIntegrity?.searchDate || '—'}</div>
-      <div style="margin-top:8px;font-size:10px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;">
-        [A] Chrome MCP 瀏覽器實搜（最高可信度）｜[B] 蝦皮站內資料（快照，無法跨平台驗證）｜資料不足直接標示，不填假數字
-      </div>
+      <div class="modal-section-title">📋 資料可信度</div>
+      ${cd.dataIntegrity?.credibilityScore!=null?`<div style="margin-bottom:8px;"><span style="font-size:12px;">可信度：</span><strong style="color:${cd.dataIntegrity.credibilityScore>=80?'var(--green)':cd.dataIntegrity.credibilityScore>=60?'var(--yellow)':'var(--red)'};">${cd.dataIntegrity.credibilityScore}/100</strong></div>`:''}
+      ${cd.dataIntegrity?.missingData?.length?`<div style="font-size:11px;margin-bottom:6px;">⚠️ 未爬取：<span style="color:var(--red);">${cd.dataIntegrity.missingData.join('、')}</span></div>`:''}
+      <div style="font-size:11px;color:var(--dim);">搜尋日期：${cd.dataIntegrity?.searchDate||'—'}</div>
     </div>
   `;
-
   document.getElementById('detail-modal').classList.add('open');
 }
-
 function closeModal() { document.getElementById('detail-modal').classList.remove('open'); }
-document.getElementById('detail-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-document.getElementById('ie-modal').addEventListener('click', e => { if (e.target === e.currentTarget) document.getElementById('ie-modal').classList.remove('open'); });
+document.getElementById('detail-modal').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
 
-// ══════════════════════════════════════════════════════════
-// TAB SWITCH
-// ══════════════════════════════════════════════════════════
+// ── TABS ──
 function switchTab(name, btn) {
-  ['results','cost','guide'].forEach(t => { document.getElementById('tab-' + t).style.display = t === name ? '' : 'none'; });
+  ['results','cost','guide'].forEach(t => { document.getElementById('tab-'+t).style.display = t===name?'':'none'; });
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 }
-
-// ══════════════════════════════════════════════════════════
-// IMPORT / EXPORT JSON
-// ══════════════════════════════════════════════════════════
-function showImportExport() {
-  document.getElementById('ie-modal').classList.add('open');
-}
-function doExportJSON() {
-  const json = JSON.stringify({ products, nextId, exportedAt: new Date().toISOString() }, null, 2);
-  document.getElementById('export-area').value = json;
-  showToast('JSON 已生成，請複製', 'success');
-}
-function copyExport() {
-  const area = document.getElementById('export-area');
-  if (!area.value) { doExportJSON(); }
-  navigator.clipboard.writeText(area.value).then(() => showToast('✅ JSON 已複製到剪貼簿', 'success'));
-}
-function doImportJSON() { _importJSON(false); }
-function doImportJSONReplace() { _importJSON(true); }
-function _importJSON(replace) {
-  try {
-    const raw = document.getElementById('import-area').value.trim();
-    if (!raw) { showToast('請先貼上 JSON', 'error'); return; }
-    const parsed = JSON.parse(raw);
-    const incoming = parsed.products || parsed;
-    if (!Array.isArray(incoming)) { showToast('格式錯誤：找不到 products 陣列', 'error'); return; }
-
-    if (replace) {
-      products = incoming;
-      nextId = parsed.nextId || (Math.max(...incoming.map(p => p.id || 0)) + 1);
-    } else {
-      // 合併（避免 id 衝突）
-      const maxExist = products.length ? Math.max(...products.map(p => p.id)) : 0;
-      const offset   = maxExist;
-      incoming.forEach(p => {
-        p.id += offset;
-        products.push(p);
-      });
-      nextId = Math.max(nextId, ...products.map(p => p.id)) + 1;
-    }
-    products.forEach(p => computeMargin(p));
-    renderQueue(); renderAll();
-    scheduleAutoSave();
-    document.getElementById('ie-modal').classList.remove('open');
-    showToast(`✅ 匯入 ${incoming.length} 筆商品`, 'success');
-  } catch(e) {
-    showToast('JSON 解析失敗：' + e.message, 'error', 5000);
-  }
+function showGuide() {
+  switchTab('guide', document.querySelectorAll('.tab')[2]);
 }
 
-// ══════════════════════════════════════════════════════════
-// EXPORT EXCEL
-// ══════════════════════════════════════════════════════════
+// ── EXCEL ──
 function exportExcel() {
   if (!products.length) { showToast('尚無商品', 'error'); return; }
-  const wb     = XLSX.utils.book_new();
-  const sorted = [...products].sort((a,b) => (b.totalScore ?? -1) - (a.totalScore ?? -1));
-  const date   = new Date().toISOString().slice(0, 10);
-
-  const r1 = [['排名','商品名稱','品牌','售價','進貨成本','出貨運費','包材','含運毛利%','不含運毛利%','達標','評分(100)','判定','Trends指數','蝦皮競品','momo狀況','可信度','搜尋日期','v12共享']];
+  const wb = XLSX.utils.book_new();
+  const sorted = [...products].sort((a,b)=>(b.totalScore??-1)-(a.totalScore??-1));
+  const date = new Date().toISOString().slice(0,10);
+  const r1 = [['排名','商品名稱','品牌','售價','進貨','運費','包材','含運毛利%','不含運毛利%','達標','評分','判定','可信度','搜尋日期','Sheets同步']];
   sorted.forEach((p,i) => {
-    const v  = verdict(p.totalScore);
+    const v = verdict(p.totalScore);
     const cd = p.crawlData;
-    const ok = p.marginWith != null && p.marginWithout != null && (p.marginWith >= 30 || p.marginWithout >= 35);
-    r1.push([i+1, p.name, p.brand||'', p.price, p.cost||'', p.logistic||0, p.packing||0,
-      p.cost > 0 && p.marginWith != null ? +p.marginWith.toFixed(1) : '',
-      p.cost > 0 && p.marginWithout != null ? +p.marginWithout.toFixed(1) : '',
-      p.cost > 0 ? (ok ? '✓' : '✗') : '待確認',
-      p.totalScore != null ? p.totalScore : '待爬蟲', v.label,
-      cd?.keywords?.trendScore ?? '無資料',
-      cd?.platforms?.shopee?.count || '無資料',
-      cd?.platforms?.momo?.status  || '無資料',
-      cd?.dataIntegrity?.credibilityScore != null ? cd.dataIntegrity.credibilityScore + '/100' : '—',
-      cd?.dataIntegrity?.searchDate || '—',
-      p.status === 'done' ? '✓ 已儲存共享' : '—'
+    const ok = p.marginWith!=null && p.marginWithout!=null && (p.marginWith>=30||p.marginWithout>=35);
+    r1.push([i+1,p.name,p.brand||'',p.price,p.cost||'',p.logistic||0,p.packing||0,
+      p.cost>0&&p.marginWith!=null?+p.marginWith.toFixed(1):'',
+      p.cost>0&&p.marginWithout!=null?+p.marginWithout.toFixed(1):'',
+      p.cost>0?(ok?'✓':'✗'):'待確認',
+      p.totalScore!=null?p.totalScore:'待爬蟲',v.label,
+      cd?.dataIntegrity?.credibilityScore!=null?cd.dataIntegrity.credibilityScore+'/100':'—',
+      cd?.dataIntegrity?.searchDate||'—',
+      p.status==='done'?'✓ 已同步':'—'
     ]);
   });
   const ws1 = XLSX.utils.aoa_to_sheet(r1);
-  ws1['!cols'] = [6,22,12,9,11,9,9,12,14,8,10,10,10,12,12,10,14,12].map(w => ({ wch:w }));
-  XLSX.utils.book_append_sheet(wb, ws1, '選品排名總表');
-
-  const r2 = [['商品名稱','核心關鍵字','長尾關鍵字','蝦皮標題建議','LINE主打詞','消費者痛點','PTT資料狀態']];
-  sorted.forEach(p => {
-    const cd = p.crawlData;
-    r2.push([p.name,
-      cd?.keywords?.main?.join('、') || '無資料',
-      cd?.keywords?.longtail?.join('、') || '無資料',
-      cd?.keywords?.actionKws?.shopeeTitle || '無資料',
-      (cd?.keywords?.actionKws?.lineCopy || []).join('、') || '無資料',
-      (cd?.brand?.painPoints || []).join(' ／ ') || '無資料',
-      // ★ v12：PTT 狀態正確標示
-      cd?.social?.ptt == null ? '⚠️ 無資料（不計分）' : '有資料：' + (cd.social.ptt.score || 0) + '分'
-    ]);
-  });
-  const ws2 = XLSX.utils.aoa_to_sheet(r2);
-  ws2['!cols'] = [22,28,35,30,28,40,16].map(w => ({ wch:w }));
-  XLSX.utils.book_append_sheet(wb, ws2, '關鍵字與痛點');
-
-  XLSX.writeFile(wb, `LINE選品評估_v12_${date}.xlsx`);
+  ws1['!cols'] = [6,22,12,9,9,9,9,12,14,8,10,10,10,14,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws1, '選品排名');
+  XLSX.writeFile(wb, `LINE選品評估_v13_${date}.xlsx`);
   showToast('✅ Excel 匯出完成', 'success');
 }
 
 function clearAll() {
-  if (!confirm('確定清空所有商品？此操作也會清除共享儲存。')) return;
+  if (!confirm('確定清空所有商品？這會清除 Google Sheets 上的資料。')) return;
   products = []; nextId = 1;
-  storageSet(STORAGE_KEY, []);
-  storageSet(STORAGE_META, { nextId:1, savedAt: new Date().toISOString(), count:0 });
+  saveToSheets();
   renderQueue(); renderAll();
-  setSyncState('synced', '已清空');
   showToast('已清空所有資料', 'info');
 }
 
 // ══════════════════════════════════════════════════════════
-// 初始化：啟動時嘗試從 Storage 載入
+// 初始化
 // ══════════════════════════════════════════════════════════
 (async function init() {
-  setSyncState('syncing', '載入共享資料...');
-  await loadFromStorage();
-
-  // 每 30 秒自動重新同步（讓使用者看到他人最新注入結果）
+  loadApiUrl();
+  setSyncState('syncing', '初始化中...');
+  if (API_URL) {
+    setConnStatus('連線中...', 'var(--yellow)');
+    await testConnection();
+  } else {
+    // 無 API URL，嘗試讀本機快取
+    loadFromLocal();
+    renderQueue(); renderAll();
+    setSyncState('error', '⚠️ 尚未設定 Sheets');
+    setConnStatus('⚠️ 未設定', 'var(--yellow)');
+    showToast('⚠️ 請先設定 Google Sheets API 網址（點右上角「設定說明」）', 'info', 6000);
+  }
+  // 每 30 秒自動同步
   setInterval(async () => {
-    if (document.visibilityState === 'visible') {
-      const data = await storageGet(STORAGE_KEY);
-      if (data && Array.isArray(data) && data.length !== products.length) {
-        await loadFromStorage();
+    if (API_URL && document.visibilityState==='visible') {
+      const res = await fetch(`${API_URL}?action=read&t=${Date.now()}`).then(r=>r.json()).catch(()=>null);
+      if (res?.products && res.products.length !== products.length) {
+        await loadFromSheets();
         showToast('🔄 偵測到新資料，已自動更新', 'info');
       }
     }
